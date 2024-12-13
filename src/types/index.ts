@@ -58,3 +58,19 @@ export interface Payment {
   type: 'rent' | 'deposit' | 'maintenance' | 'other';
   amount: number;
   status: 'pending' | 'completed' | 'failed';
+}
+
+// Tenant Types
+export interface Tenant extends User {
+  lease?: Lease;
+  status: 'active' | 'inactive';
+  balance: number;
+  lastPaymentDate?: string;
+  nextPaymentDue?: string;
+  documents: {
+    id: string;
+    name: string;
+    type: string;
+    uploadedAt: string;
+  }[];
+}
