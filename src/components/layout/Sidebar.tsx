@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { NavLink } from 'react-router-dom';
 import { 
   Home,
@@ -11,11 +11,17 @@ import {
   Settings,
   LogOut
 } from 'lucide-react';
+import { logout } from '../../lib/store/slices/authSlice';
 import { RootState } from '../../lib/store';
 
 const Sidebar: React.FC = () => {
   const { sidebarOpen } = useSelector((state: RootState) => state.ui);
   const user = useSelector((state: RootState) => state.auth.user);
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logout());
+  };
 
   const navigation = [
     { name: 'Dashboard', icon: Home, href: '/' },
@@ -59,7 +65,10 @@ const Sidebar: React.FC = () => {
           ))}
         </ul>
         <div className="px-6 my-6">
-          <button className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg active:bg-purple-600 hover:bg-purple-700 focus:outline-none focus:shadow-outline-purple"
+          >
             <span>Logout</span>
             <LogOut className="w-4 h-4 ml-2" />
           </button>
