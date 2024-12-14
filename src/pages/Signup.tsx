@@ -63,7 +63,8 @@ const Signup: React.FC = () => {
         });
         setErrors(newErrors);
       } else {
-        setErrors({ form: 'Registration failed. Please try again.' });
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+        setErrors({ form: errorMessage });
       }
     } finally {
       setIsLoading(false);

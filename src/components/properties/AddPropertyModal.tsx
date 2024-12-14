@@ -2,8 +2,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { X } from 'lucide-react';
 import { z } from 'zod';
-import { propertyService } from '../../lib/services/propertyService';
-import { addProperty } from '../../lib/store/slices/propertySlice';
+import { createProperty } from '../../lib/store/slices/propertySlice';
 import FormField from '../ui/Form/FormField';
 import Input from '../ui/Form/Input';
 import Select from '../ui/Form/Select';
@@ -42,8 +41,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose }) 
 
     try {
       const validated = propertySchema.parse(data);
-      const newProperty = await propertyService.createProperty(validated);
-      dispatch(addProperty(newProperty));
+      await dispatch(createProperty(validated));
       onClose();
     } catch (error) {
       if (error instanceof z.ZodError) {

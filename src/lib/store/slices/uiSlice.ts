@@ -3,6 +3,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface UIState {
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
+  error: string | null;
   loading: {
     [key: string]: boolean;
   };
@@ -11,6 +12,7 @@ interface UIState {
 const initialState: UIState = {
   theme: localStorage.getItem('theme') || 'dark',
   sidebarOpen: true,
+  error: null,
   loading: {},
 };
 
@@ -29,8 +31,11 @@ const uiSlice = createSlice({
     setLoading: (state, action: PayloadAction<{ key: string; value: boolean }>) => {
       state.loading[action.payload.key] = action.payload.value;
     },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
+    },
   },
 });
 
-export const { toggleTheme, toggleSidebar, setLoading } = uiSlice.actions;
+export const { toggleTheme, toggleSidebar, setLoading, setError } = uiSlice.actions;
 export default uiSlice.reducer;

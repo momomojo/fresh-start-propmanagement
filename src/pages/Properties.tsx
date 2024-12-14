@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Building2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { fetchProperties } from '../lib/store/slices/propertySlice';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import AddPropertyModal from '../components/properties/AddPropertyModal';
@@ -21,13 +22,9 @@ const Properties: React.FC = () => {
   React.useEffect(() => {
     const fetchProperties = async () => {
       try {
-        dispatch(setLoading(true));
-        const data = await propertyService.getProperties();
-        dispatch(setProperties(data));
+        await dispatch(fetchProperties());
       } catch (error) {
         console.error('Error fetching properties:', error);
-      } finally {
-        dispatch(setLoading(false));
       }
     };
 

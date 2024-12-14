@@ -1,37 +1,32 @@
-import { UserModel } from '../db/models/user';
-import { hashPassword, verifyPassword } from '../utils/password';
-import { generateToken } from '../utils/jwt';
+import { auth } from '../firebase/config';
+import { authService as firebaseAuthService } from '../firebase/services/authService';
 import type { User } from '../../types';
 
 export const authService = {
   async login(email: string, password: string) {
-    const user = await UserModel.findByEmail(email);
-    if (!user) {
+    try {
+      return await firebaseAuthService.login(email, password);
+    } catch (error) {
+      console.error('Login error:', error);
       throw new Error('Invalid credentials');
     }
-
-    const isValid = await verifyPassword(password, user.password_hash);
-    if (!isValid) {
-      throw new Error('Invalid credentials');
-    }
-
-    const token = await generateToken(user);
-    return { user, token };
   },
 
   async register(data: { email: string; password: string; name: string; role: User['role'] }) {
-    const existingUser = await UserModel.findByEmail(data.email);
-    if (existingUser) {
+    try {
+      return await firebaseAuthService.register(data);
+    } catch (error) {
+      console.error('Registration error:', error);
       throw new Error('Email already registered');
     }
+  },
 
-    const password_hash = await hashPassword(data.password);
-    const user = await UserModel.create({
-      ...data,
-      password_hash
-    });
-
-    const token = await generateToken(user);
-    return { user, token };
+  async logout() {
+    try {
+      await firebaseAuthService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    }
   }
 };

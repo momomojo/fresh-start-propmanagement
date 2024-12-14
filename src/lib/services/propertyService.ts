@@ -1,24 +1,24 @@
-import { PropertyModel } from '../db/models/property';
+import { propertyService as firebasePropertyService } from '../firebase/services/propertyService';
 import type { Property } from '../../types';
 
 export const propertyService = {
   async getProperties(): Promise<Property[]> {
-    return PropertyModel.findAll();
+    return firebasePropertyService.getProperties();
   },
 
   async getProperty(id: string): Promise<Property | null> {
-    return PropertyModel.findById(id);
+    return firebasePropertyService.getProperty(id);
   },
 
   async createProperty(data: Omit<Property, 'id' | 'created_at' | 'updated_at'>): Promise<Property> {
-    return PropertyModel.create(data);
+    return firebasePropertyService.createProperty(data);
   },
 
-  async updateProperty(id: string, data: Partial<Property>): Promise<Property | null> {
-    return PropertyModel.update(id, data);
+  async updateProperty(id: string, data: Partial<Property>): Promise<Property> {
+    return firebasePropertyService.updateProperty(id, data);
   },
 
   async deleteProperty(id: string): Promise<boolean> {
-    return PropertyModel.delete(id);
+    return firebasePropertyService.deleteProperty(id);
   }
 };

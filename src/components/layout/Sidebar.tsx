@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { NavLink } from 'react-router-dom';
+import { authService } from '../../lib/services/authService';
 import { 
   Home,
   Building2,
@@ -20,7 +21,13 @@ const Sidebar: React.FC = () => {
   const dispatch = useDispatch();
 
   const handleLogout = () => {
-    dispatch(logout());
+    authService.logout()
+      .then(() => {
+        dispatch(logout());
+      })
+      .catch((error) => {
+        console.error('Logout error:', error);
+      });
   };
 
   const navigation = [

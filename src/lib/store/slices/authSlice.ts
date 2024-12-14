@@ -43,9 +43,9 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.loading = false;
+      state.loading = false;
       state.error = null;
       localStorage.removeItem('token');
-      window.location.href = '/login';
     },
   },
 });
