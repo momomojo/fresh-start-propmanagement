@@ -52,10 +52,25 @@ export const authService = {
   async login(email: string, password: string) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Get the user document from Firestore
       const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        throw new Error('User data not found');
+        // Create a default user document if it doesn't exist
+        const userData = {
+          email: userCredential.user.email!,
+          name: userCredential.user.displayName || 'User',
+          role: 'tenant',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        await setDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid), userData);
+        return {
+          user: { id: userCredential.user.uid, ...userData },
+          token: await userCredential.user.getIdToken()
+        };
       }
 
       const user = { id: userDoc.id, ...userDoc.data() } as User;
@@ -63,8 +78,12 @@ export const authService = {
 
       return { user, token };
     } catch (error) {
-      console.error('Error logging in:', error);
-      throw error;
+      console.error('Login error:', error);
+      throw new Error(
+        (error as { code?: string }).code === 'auth/user-not-found'
+          ? 'Invalid email or password'
+          : 'Failed to login. Please try again.'
+      );
     }
   },
 

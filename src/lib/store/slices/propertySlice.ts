@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { propertyService } from '../../services/propertyService';
 import type { Property } from '../../../types';
-import { ActionStatus } from '../types';
+import { ActionStatusEnum, type ActionStatus } from '../types';
 
 interface PropertyState {
   properties: Property[];
@@ -9,8 +9,8 @@ interface PropertyState {
   status: ActionStatus;
   error: string | null;
   filters: {
-    status: string[];
-    type: string[];
+    status: Property['status'][];
+    type: Property['type'][];
     search: string;
   };
 }
@@ -18,7 +18,7 @@ interface PropertyState {
 const initialState: PropertyState = {
   properties: [],
   selectedProperty: null,
-  status: ActionStatus.IDLE,
+  status: ActionStatusEnum.IDLE,
   error: null,
   filters: {
     status: [],
@@ -77,8 +77,15 @@ const propertySlice = createSlice({
   name: 'properties',
   initialState,
   reducers: {
+    setProperties: (state, action: PayloadAction<Property[]>) => {
+      state.properties = action.payload;
+      state.status = ActionStatusEnum.SUCCEEDED;
+    },
     setSelectedProperty: (state, action: PayloadAction<Property | null>) => {
       state.selectedProperty = action.payload;
+    },
+    setFilters: (state, action: PayloadAction<Partial<typeof initialState.filters>>) => {
+      state.filters = { ...state.filters, ...action.payload };
     },
     clearError: (state) => {
       state.error = null;
@@ -87,15 +94,15 @@ const propertySlice = createSlice({
   extraReducers: (builder) => {
     // Fetch properties
     builder.addCase(fetchProperties.pending, (state) => {
-      state.status = ActionStatus.LOADING;
+      state.status = ActionStatusEnum.LOADING;
       state.error = null;
     });
     builder.addCase(fetchProperties.fulfilled, (state, action) => {
-      state.status = ActionStatus.SUCCEEDED;
+      state.status = ActionStatusEnum.SUCCEEDED;
       state.properties = action.payload;
     });
     builder.addCase(fetchProperties.rejected, (state, action) => {
-      state.status = ActionStatus.FAILED;
+      state.status = ActionStatusEnum.FAILED;
       state.error = action.payload as string;
     });
 
@@ -119,6 +126,6 @@ const propertySlice = createSlice({
   },
 });
 
-export const { setSelectedProperty, clearError } = propertySlice.actions;
+export const { setProperties, setSelectedProperty, setFilters, clearError } = propertySlice.actions;
 
 export default propertySlice.reducer;
