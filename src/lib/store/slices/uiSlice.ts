@@ -2,18 +2,15 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface UIState {
   theme: 'light' | 'dark';
-  sidebarOpen: boolean;
   error: string | null;
-  loading: {
-    [key: string]: boolean;
-  };
 }
 
+const storedTheme = localStorage.getItem('theme');
+const validTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
+
 const initialState: UIState = {
-  theme: localStorage.getItem('theme') || 'dark',
-  sidebarOpen: true,
+  theme: validTheme,
   error: null,
-  loading: {},
 };
 
 const uiSlice = createSlice({
@@ -21,21 +18,18 @@ const uiSlice = createSlice({
   initialState,
   reducers: {
     toggleTheme: (state) => {
-      const newTheme = state.theme === 'light' ? 'dark' : 'light';
-      state.theme = newTheme;
-      localStorage.setItem('theme', newTheme);
-    },
-    toggleSidebar: (state) => {
-      state.sidebarOpen = !state.sidebarOpen;
-    },
-    setLoading: (state, action: PayloadAction<{ key: string; value: boolean }>) => {
-      state.loading[action.payload.key] = action.payload.value;
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+      localStorage.setItem('theme', state.theme);
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
+    clearError: (state) => {
+      state.error = null;
+    },
   },
 });
 
-export const { toggleTheme, toggleSidebar, setLoading, setError } = uiSlice.actions;
+export const { toggleTheme, setError, clearError } = uiSlice.actions;
+
 export default uiSlice.reducer;

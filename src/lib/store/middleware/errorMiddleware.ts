@@ -1,18 +1,15 @@
 import { Middleware } from '@reduxjs/toolkit';
-import { RootState } from '../index';
 import { setError } from '../slices/uiSlice';
 
-export const errorMiddleware: Middleware<{}, RootState> = (store) => (next) => (action) => {
-  // Handle rejected actions
-  if (action.type.endsWith('/rejected')) {
-    console.error('Action Error:', action.error);
-    store.dispatch(setError(action.error?.message || 'An error occurred'));
-    
-    // Clear error after 5 seconds
-    setTimeout(() => {
-      store.dispatch(setError(null));
-    }, 5000);
+export const errorMiddleware: Middleware = (store) => (next) => (action) => {
+  const result = next(action);
+
+  if (typeof action === 'object' && action !== null && 'type' in action && typeof action.type === 'string') {
+    if (action.type.endsWith('/rejected')) {
+      console.error('Action Error:', (action as any).error);
+      store.dispatch(setError((action as any).error?.message || 'An error occurred'));
+    }
   }
-  
-  return next(action);
+
+  return result;
 };

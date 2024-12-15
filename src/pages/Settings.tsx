@@ -1,6 +1,8 @@
 import React from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import Card from '../components/ui/Card';
+import UserProfile from '../components/settings/UserProfile';
+import SecuritySettings from '../components/settings/SecuritySettings';
+import AdminSettings from '../components/settings/AdminSettings';
 
 const Settings: React.FC = () => {
   return (
@@ -9,9 +11,12 @@ const Settings: React.FC = () => {
         title="Settings"
         description="Manage your account and application preferences"
       />
-      <Card>
-        <p className="text-gray-600 dark:text-gray-400">Settings panel coming soon...</p>
-      </Card>
+      
+      <div className="space-y-6">
+        <UserProfile />
+        <SecuritySettings />
+        <AdminSettings />
+      </div>
     </div>
   );
 };

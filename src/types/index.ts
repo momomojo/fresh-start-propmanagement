@@ -25,6 +25,17 @@ export interface Property {
   manager_id?: string;
 }
 
+// Property Unit Types
+export interface PropertyUnit {
+  id: string;
+  property_id: string;
+  unit_number: string;
+  floor_plan: string | null;
+  status: 'available' | 'occupied' | 'maintenance';
+  created_at: string;
+  updated_at: string;
+}
+
 // Lease Types
 export interface Lease {
   id: string;

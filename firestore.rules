@@ -38,6 +38,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    // Units collection
+    match /units/{unitId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || isPropertyManager();
+      allow update: if isAdmin() || isPropertyManager();
+      allow delete: if isAdmin();
+    }
+    
     // Tenants collection
     match /tenants/{tenantId} {
       allow read: if isAuthenticated();
