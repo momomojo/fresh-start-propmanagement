@@ -15,9 +15,42 @@
 4. generate_form: Zod-validated forms
 5. generate_tests: Test suite generation
 
+## Current Issues to Address
+1. Firebase Integration Inconsistency
+   - Some services use Firebase, others use in-memory storage
+   - Need to standardize Firebase usage across all services
+
+2. Missing Unit Management
+   - Database schema includes property_units
+   - No corresponding service or UI components
+   - Need complete unit management implementation
+
+3. Document Management
+   - Type definitions include document support
+   - No implementation for document handling
+   - Need storage service integration
+
 ## Implementation Phases
 
-### Phase 1: Role-Based Access Enhancement (Week 1)
+### Phase 1: Infrastructure Standardization (Week 1)
+1. Firebase Integration
+   - Standardize all services to use Firebase
+   - Migrate in-memory data to Firestore
+   - Implement Firebase Storage for documents
+2. Unit Management
+   - Create unit management service
+   - Implement unit CRUD operations
+   - Add unit management UI components
+
+Tools Usage:
+```
+- generate_service: unitService, standardize existing services
+- generate_slice: unitSlice
+- generate_form: UnitForm
+- generate_component: UnitManagement, UnitList
+```
+
+### Phase 2: Role-Based Access Enhancement (Week 1-2)
 1. User Management
    - Enhance existing role system:
      - Admin: Full system access
@@ -34,10 +67,28 @@ Tools Usage:
 - generate_component: RoleBasedLayout
 ```
 
-### Phase 2: Property Management Enhancement (Week 1-2)
+### Phase 3: Document Management System (Week 2-3)
+1. Document Storage
+   - Firebase Storage integration
+   - Document upload/download
+   - Document type management
+2. Document Access Control
+   - Role-based document access
+   - Document sharing
+   - Version tracking
+
+Tools Usage:
+```
+- generate_service: documentService
+- generate_slice: documentSlice
+- generate_form: DocumentUploadForm
+- generate_component: DocumentManager
+```
+
+### Phase 4: Property Management Enhancement (Week 3-4)
 1. Property Management
    - Enhance property CRUD
-   - Unit management improvements
+   - Unit management integration
    - Document storage for properties
 2. Role-Specific Dashboards
    - Admin: All properties overview
@@ -52,7 +103,7 @@ Tools Usage:
 - generate_component: PropertyDashboard
 ```
 
-### Phase 3: Lease Management Enhancement (Week 2-3)
+### Phase 5: Lease Management Enhancement (Week 4-5)
 1. Lease System
    - Digital lease creation
    - Automated renewal tracking
@@ -70,7 +121,7 @@ Tools Usage:
 - generate_component: TenantPortal
 ```
 
-### Phase 4: Payment System (Week 3-4)
+### Phase 6: Payment System (Week 5-6)
 Building on existing payments table:
 1. Payment Processing
    - Automated rent collection
@@ -89,7 +140,7 @@ Tools Usage:
 - generate_component: PaymentDashboard
 ```
 
-### Phase 5: Maintenance System Enhancement (Week 4-5)
+### Phase 7: Maintenance System Enhancement (Week 6-7)
 Building on existing maintenance_requests table:
 1. Request Management
    - Enhanced request creation
@@ -108,7 +159,7 @@ Tools Usage:
 - generate_component: MaintenanceBoard
 ```
 
-### Phase 6: Communication System (Week 5-6)
+### Phase 8: Communication System (Week 7-8)
 1. Messaging System
    - Role-based messaging:
      - Admin to Property Managers
@@ -127,7 +178,7 @@ Tools Usage:
 - generate_component: MessageCenter
 ```
 
-### Phase 7: Analytics & Reports (Week 6-7)
+### Phase 9: Analytics & Reports (Week 8-9)
 1. Role-Based Analytics
    - Admin: System-wide metrics
    - Property Manager: Property-specific metrics
@@ -192,6 +243,16 @@ Tools Usage:
    - Transaction records
    - Payment status
 
+## Firebase Collections Structure
+1. users
+2. properties
+3. units
+4. leases
+5. maintenance_requests
+6. payments
+7. documents
+8. messages
+
 ## Security Considerations
 1. Firebase Security Rules
    - Role-based access control
@@ -208,6 +269,7 @@ Tools Usage:
 2. Lazy Loading
 3. Caching Strategies
 4. Optimistic Updates
+5. Firebase Query Optimization
 
 ## Testing Strategy
 1. Unit Tests
@@ -224,4 +286,4 @@ Tools Usage:
    - Critical paths
    - User journeys
 
-This implementation plan builds upon the existing project structure and role system, focusing on enhancing current features while adding new functionality in a scalable way. Each phase is designed to work with the existing database schema while adding new capabilities incrementally.
+This implementation plan addresses the current issues and gaps in the project while building upon the existing structure. The phases are ordered to ensure fundamental infrastructure is solid before adding new features. Each phase is designed to work with the existing database schema while adding new capabilities incrementally.
