@@ -9,8 +9,8 @@ import Table from '../components/ui/Table/Table';
 import TablePagination from '../components/ui/Table/TablePagination';
 import type { Property } from '../types';
 import type { RootState } from '../lib/store';
-import { setProperties, setLoading } from '../lib/store/slices/propertySlice';
 import { propertyService } from '../lib/services/propertyService';
+import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 const Properties: React.FC = () => {
   const dispatch = useDispatch();
@@ -20,15 +20,15 @@ const Properties: React.FC = () => {
   const itemsPerPage = 10;
 
   React.useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchPropertiesData = () => {
       try {
-        await dispatch(fetchProperties());
+        dispatch(fetchProperties());
       } catch (error) {
         console.error('Error fetching properties:', error);
       }
     };
 
-    fetchProperties();
+    fetchPropertiesData();
   }, [dispatch]);
 
   const columns = [
@@ -63,42 +63,44 @@ const Properties: React.FC = () => {
   ];
 
   return (
-    <div>
-      <PageHeader 
-        title="Properties"
-        description="Manage your property portfolio"
-      />
-      
-      <div className="mb-6">
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Property
-        </button>
+    <ProtectedRoute requiredRoles={['admin', 'property_manager']}>
+      <div>
+        <PageHeader 
+          title="Properties"
+          description="Manage your property portfolio"
+        />
+        
+        <div className="mb-6">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Property
+          </button>
+        </div>
+
+        <AddPropertyModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+        />
+
+        <Card>
+          <Table
+            data={properties}
+            columns={columns}
+            isLoading={loading}
+          />
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(properties.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            totalItems={properties.length}
+            itemsPerPage={itemsPerPage}
+          />
+        </Card>
       </div>
-
-      <AddPropertyModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-      />
-
-      <Card>
-        <Table
-          data={properties}
-          columns={columns}
-          isLoading={loading}
-        />
-        <TablePagination
-          currentPage={currentPage}
-          totalPages={Math.ceil(properties.length / itemsPerPage)}
-          onPageChange={setCurrentPage}
-          totalItems={properties.length}
-          itemsPerPage={itemsPerPage}
-        />
-      </Card>
-    </div>
+    </ProtectedRoute>
   );
 };
 

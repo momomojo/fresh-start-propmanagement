@@ -22,6 +22,7 @@ export interface Property {
   status: 'available' | 'occupied' | 'maintenance';
   created_at: string;
   updated_at: string;
+  manager_id?: string;
 }
 
 // Lease Types

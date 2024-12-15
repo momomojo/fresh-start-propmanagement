@@ -1,11 +1,13 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { X } from 'lucide-react';
 import { z } from 'zod';
 import { createProperty } from '../../lib/store/slices/propertySlice';
 import FormField from '../ui/Form/FormField';
 import Input from '../ui/Form/Input';
 import Select from '../ui/Form/Select';
+import { RootState, AppDispatch } from '../../lib/store/index';
+import { User } from '../../types';
 
 interface AddPropertyModalProps {
   isOpen: boolean;
@@ -17,13 +19,17 @@ const propertySchema = z.object({
   address: z.string().min(1, 'Address is required'),
   type: z.enum(['apartment', 'house', 'commercial']),
   units: z.number().min(1, 'Must have at least 1 unit'),
-  status: z.enum(['available', 'occupied', 'maintenance'])
+  status: z.enum(['available', 'occupied', 'maintenance']),
+  manager_id: z.string().optional(),
 });
 
 const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { users } = useSelector((state: RootState) => state.auth);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = React.useState(false);
+
+  const propertyManagers = users ? users.filter((user: User) => user.role === 'property_manager') : [];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,12 +42,13 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose }) 
       address: formData.get('address') as string,
       type: formData.get('type') as 'apartment' | 'house' | 'commercial',
       units: Number(formData.get('units')),
-      status: formData.get('status') as 'available' | 'occupied' | 'maintenance'
+      status: formData.get('status') as 'available' | 'occupied' | 'maintenance',
+      manager_id: formData.get('manager_id') as string | undefined,
     };
 
     try {
       const validated = propertySchema.parse(data);
-      await dispatch(createProperty(validated));
+      dispatch(createProperty(validated));
       onClose();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -133,6 +140,17 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose }) 
                   { value: 'maintenance', label: 'Under Maintenance' }
                 ]}
                 error={!!errors.status}
+              />
+            </FormField>
+            
+            <FormField label="Property Manager" error={errors.manager_id}>
+              <Select
+                name="manager_id"
+                options={propertyManagers.map((manager: User) => ({
+                  value: manager.id,
+                  label: manager.name,
+                }))}
+                error={!!errors.manager_id}
               />
             </FormField>
 
