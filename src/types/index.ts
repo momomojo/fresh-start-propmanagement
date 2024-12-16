@@ -1,56 +1,53 @@
-// User Types
-export type UserRole = 'admin' | 'property_manager' | 'tenant';
-
 export interface User {
   id: string;
-  email: string;
-  password_hash: string;
   name: string;
-  role: UserRole;
-  avatar_url?: string;
+  email: string;
+  role: 'admin' | 'property_manager' | 'tenant';
+  password_hash: string;
   created_at: string;
   updated_at: string;
 }
 
-// Property Types
 export interface Property {
   id: string;
   name: string;
   address: string;
   type: 'apartment' | 'house' | 'commercial';
   units: number;
-  status: 'available' | 'occupied' | 'maintenance';
+  status: 'active' | 'inactive';
   created_at: string;
   updated_at: string;
-  manager_id?: string;
 }
 
-// Property Unit Types
 export interface PropertyUnit {
   id: string;
   property_id: string;
   unit_number: string;
-  floor_plan: string | null;
-  status: 'available' | 'occupied' | 'maintenance';
-  created_at: string;
-  updated_at: string;
-}
-
-// Lease Types
-export interface Lease {
-  id: string;
-  unit_id: string;
-  tenant_id: string;
-  start_date: string;
-  end_date: string;
+  floor_plan: string;
+  status: 'vacant' | 'occupied' | 'maintenance';
   rent_amount: number;
-  deposit_amount: number;
-  status: 'active' | 'pending' | 'past';
+  square_feet: number;
+  bedrooms: number;
+  bathrooms: number;
   created_at: string;
   updated_at: string;
 }
 
-// Maintenance Types
+export interface Tenant {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  unit_id: string;
+  lease_start: string;
+  lease_end: string;
+  rent_amount: number;
+  security_deposit: number;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MaintenanceRequest {
   id: string;
   tenant_id: string;
@@ -63,26 +60,25 @@ export interface MaintenanceRequest {
   updated_at: string;
 }
 
-// Payment Types
 export interface Payment {
   id: string;
-  lease_id: string;
-  type: 'rent' | 'deposit' | 'maintenance' | 'other';
+  tenant_id: string;
   amount: number;
+  type: 'rent' | 'deposit' | 'fee';
   status: 'pending' | 'completed' | 'failed';
+  due_date: string;
+  paid_date?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-// Tenant Types
-export interface Tenant extends User {
-  lease?: Lease;
-  status: 'active' | 'inactive';
-  balance: number;
-  lastPaymentDate?: string;
-  nextPaymentDue?: string;
-  documents: {
-    id: string;
-    name: string;
-    type: string;
-    uploadedAt: string;
-  }[];
+export interface Document {
+  id: string;
+  name: string;
+  type: 'lease' | 'invoice' | 'maintenance' | 'other';
+  url: string;
+  tenant_id?: string;
+  property_id?: string;
+  created_at: string;
+  updated_at: string;
 }

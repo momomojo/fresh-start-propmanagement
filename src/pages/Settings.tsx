@@ -1,31 +1,71 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import UserProfile from '@/components/settings/UserProfile';
-import SecuritySettings from '@/components/settings/SecuritySettings';
-import AdminSettings from '@/components/settings/AdminSettings';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserProfile } from '@/components/settings/UserProfile';
+import { SecuritySettings } from '@/components/settings/SecuritySettings';
+import { AdminSettings } from '@/components/settings/AdminSettings';
+import { User } from '@/types';
 
-const Settings: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+export const Settings = () => {
+  const [user] = useState<User>({
+    id: '1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'admin',
+    created_at: '2024-01-01',
+    updated_at: '2024-01-15',
+  });
 
-  if (!user) return null;
+  const handleProfileUpdate = (updatedUser: Partial<User>) => {
+    console.log('Updating user profile:', updatedUser);
+  };
+
+  const handleSecurityUpdate = (data: { currentPassword: string; newPassword: string }) => {
+    console.log('Updating security settings:', data);
+  };
+
+  const handleAdminSettingsUpdate = (settings: any) => {
+    console.log('Updating admin settings:', settings);
+  };
 
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-4xl">
-      <h1 className="text-3xl font-bold">Settings</h1>
-      
-      <div className="space-y-6">
-        {/* Profile Settings */}
-        <UserProfile />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground">
+          Manage your account settings and preferences
+        </p>
+      </div>
 
-        {/* Security Settings */}
-        <SecuritySettings />
+      <div className="grid gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UserProfile user={user} onSave={handleProfileUpdate} />
+          </CardContent>
+        </Card>
 
-        {/* Admin Settings - Only visible to admins */}
-        {user.role === 'admin' && <AdminSettings />}
+        <Card>
+          <CardHeader>
+            <CardTitle>Security</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SecuritySettings onSave={handleSecurityUpdate} />
+          </CardContent>
+        </Card>
+
+        {user.role === 'admin' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AdminSettings onSave={handleAdminSettingsUpdate} />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
 };
-
-export default Settings;

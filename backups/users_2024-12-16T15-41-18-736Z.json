@@ -1,0 +1,55 @@
+[
+  {
+    "id": "1BZGWVn2R7Q20vsHCbcYN2pp4aZ2",
+    "email": "mohibhafeez@gmail.com",
+    "name": "mohib hafeez",
+    "role": "admin",
+    "created_at": "2024-12-14T00:12:14.439Z",
+    "updated_at": "2024-12-14T00:12:14.439Z"
+  },
+  {
+    "id": "RzeV1jOjCmUBuM3qXePWg5T7Ts13",
+    "email": "tennant@gmail.com",
+    "name": "test tennant",
+    "role": "tenant",
+    "created_at": "2024-12-15T06:40:20.782Z",
+    "updated_at": "2024-12-15T06:40:20.782Z"
+  },
+  {
+    "id": "_init",
+    "initialized": true,
+    "created_at": "2024-12-14T21:02:36.427Z"
+  },
+  {
+    "id": "admin",
+    "role": "admin",
+    "updated_at": "2024-12-14T07:03:42.778Z",
+    "name": "System Admin",
+    "created_at": "2024-12-14T07:03:42.778Z",
+    "email": "admin@propertypro.com"
+  },
+  {
+    "id": "default-manager",
+    "role": "property_manager",
+    "updated_at": "2024-12-14T07:03:42.779Z",
+    "name": "Default Manager",
+    "created_at": "2024-12-14T07:03:42.779Z",
+    "email": "manager@propertypro.com"
+  },
+  {
+    "id": "ovd5iFfX0zWOZ9nxIK2OKTTnkw93",
+    "email": "Landlord@test.com",
+    "name": "landlord test",
+    "role": "property_manager",
+    "created_at": "2024-12-14T04:33:33.540Z",
+    "updated_at": "2024-12-14T04:33:33.540Z"
+  },
+  {
+    "id": "u3J0NUynFvWATqs5fRWwxHfVHXM2",
+    "email": "claireherman135@gmail.com",
+    "name": "Claire Herman",
+    "role": "property_manager",
+    "created_at": "2024-12-14T03:49:56.273Z",
+    "updated_at": "2024-12-14T03:49:56.273Z"
+  }
+]

@@ -1,105 +1,82 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import UnitList from '../UnitList';
-import { PropertyUnit } from '../../../types';
-import { ActionStatus } from '../../../lib/store/types';
-
-const mockStore = configureStore([]);
+import { UnitList } from '../UnitList';
+import { PropertyUnit, Tenant } from '@/types';
 
 describe('UnitList', () => {
-  let store: any;
-  const mockUnits: PropertyUnit[] = [
+  const mockUnits: (PropertyUnit & { tenant?: Tenant })[] = [
     {
-      id: 'unit-1',
-      property_id: 'property-1',
-      unit_number: '101',
+      id: '1',
+      property_id: 'prop1',
+      unit_number: 'A1',
       floor_plan: 'Studio',
-      status: 'available',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      status: 'vacant',
+      rent_amount: 1000,
+      square_feet: 500,
+      bedrooms: 1,
+      bathrooms: 1,
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
     },
     {
-      id: 'unit-2',
-      property_id: 'property-1',
-      unit_number: '102',
-      floor_plan: '1 Bedroom',
+      id: '2',
+      property_id: 'prop1',
+      unit_number: 'B1',
+      floor_plan: '1BR',
       status: 'occupied',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+      rent_amount: 1500,
+      square_feet: 750,
+      bedrooms: 1,
+      bathrooms: 1,
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+      tenant: {
+        id: 'tenant1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        phone: '123-456-7890',
+        unit_id: '2',
+        lease_start: '2024-01-01',
+        lease_end: '2024-12-31',
+        rent_amount: 1500,
+        security_deposit: 1500,
+        status: 'active',
+        created_at: '2024-01-01',
+        updated_at: '2024-01-01',
+      },
+    },
   ];
 
+  const mockOnUnitClick = jest.fn();
+
   beforeEach(() => {
-    store = mockStore({
-      units: {
-        units: mockUnits,
-        status: ActionStatus.IDLE,
-        error: null
-      }
-    });
+    mockOnUnitClick.mockClear();
   });
 
-  it('renders loading spinner when loading', () => {
-    store = mockStore({
-      units: {
-        units: [],
-        status: ActionStatus.LOADING,
-        error: null
-      }
-    });
+  it('renders all units', () => {
+    render(<UnitList units={mockUnits} onUnitClick={mockOnUnitClick} />);
 
-    render(
-      <Provider store={store}>
-        <UnitList propertyId="property-1" />
-      </Provider>
-    );
-
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    expect(screen.getByText('Unit A1')).toBeInTheDocument();
+    expect(screen.getByText('Unit B1')).toBeInTheDocument();
   });
 
-  it('renders error message when there is an error', () => {
-    const errorMessage = 'Failed to load units';
-    store = mockStore({
-      units: {
-        units: [],
-        status: ActionStatus.FAILED,
-        error: errorMessage
-      }
-    });
+  it('displays tenant information when available', () => {
+    render(<UnitList units={mockUnits} onUnitClick={mockOnUnitClick} />);
 
-    render(
-      <Provider store={store}>
-        <UnitList propertyId="property-1" />
-      </Provider>
-    );
-
-    expect(screen.getByTestId('error-message')).toHaveTextContent(errorMessage);
-  });
-
-  it('renders list of units', () => {
-    render(
-      <Provider store={store}>
-        <UnitList propertyId="property-1" />
-      </Provider>
-    );
-
-    mockUnits.forEach(unit => {
-      expect(screen.getByText(unit.unit_number)).toBeInTheDocument();
-      expect(screen.getByText(unit.floor_plan as string)).toBeInTheDocument();
-      expect(screen.getByText(unit.status)).toBeInTheDocument();
-    });
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
   });
 
   it('calls onUnitClick when a unit is clicked', () => {
-    const onUnitClick = jest.fn();
-    render(
-      <Provider store={store}>
-        <UnitList propertyId="property-1" onUnitClick={onUnitClick} />
-      </Provider>
-    );
+    render(<UnitList units={mockUnits} onUnitClick={mockOnUnitClick} />);
 
-    fireEvent.click(screen.getByTestId(`unit-row-${mockUnits[0].unit_number}`));
-    expect(onUnitClick).toHaveBeenCalledWith(mockUnits[0]);
+    fireEvent.click(screen.getByText('Unit A1'));
+    expect(mockOnUnitClick).toHaveBeenCalledWith(mockUnits[0]);
+  });
+
+  it('calls onUnitClick when View Details button is clicked', () => {
+    render(<UnitList units={mockUnits} onUnitClick={mockOnUnitClick} />);
+
+    const buttons = screen.getAllByText('View Details');
+    fireEvent.click(buttons[0]);
+    expect(mockOnUnitClick).toHaveBeenCalledWith(mockUnits[0]);
   });
 });

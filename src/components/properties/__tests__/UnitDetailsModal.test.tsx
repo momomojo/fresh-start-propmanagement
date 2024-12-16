@@ -1,130 +1,129 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import UnitDetailsModal from '../UnitDetailsModal';
-import { PropertyUnit } from '../../../types';
-
-const mockStore = configureStore([]);
+import { UnitDetailsModal } from '../UnitDetailsModal';
+import { PropertyUnit } from '@/types';
 
 describe('UnitDetailsModal', () => {
-  let store: any;
   const mockUnit: PropertyUnit = {
-    id: 'test-unit-id',
-    property_id: 'test-property-id',
-    unit_number: '101',
-    floor_plan: 'Studio', // Even though it's nullable, we provide a value for testing
-    status: 'available',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    id: '1',
+    property_id: 'prop1',
+    unit_number: 'A1',
+    floor_plan: 'Studio',
+    status: 'vacant',
+    rent_amount: 1000,
+    square_feet: 500,
+    bedrooms: 1,
+    bathrooms: 1,
+    created_at: '2024-01-01',
+    updated_at: '2024-01-01',
   };
 
+  const mockOnClose = jest.fn();
+  const mockOnSave = jest.fn();
+
   beforeEach(() => {
-    store = mockStore({
-      units: {
-        status: 'idle',
-        error: null
-      }
-    });
+    mockOnClose.mockClear();
+    mockOnSave.mockClear();
   });
 
   it('renders unit details', () => {
     render(
-      <Provider store={store}>
-        <UnitDetailsModal
-          unit={mockUnit}
-          onClose={() => {}}
-          onUpdate={() => {}}
-          onDelete={() => {}}
-        />
-      </Provider>
+      <UnitDetailsModal
+        unit={mockUnit}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
     );
 
-    // Check for unit number
-    expect(screen.getByText(mockUnit.unit_number)).toBeInTheDocument();
-    
-    // Check for floor plan if it exists
-    if (mockUnit.floor_plan) {
-      expect(screen.getByText(mockUnit.floor_plan)).toBeInTheDocument();
-    }
-    
-    // Check for status
-    expect(screen.getByText(mockUnit.status, { exact: false })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('A1')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Studio')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('vacant')).toBeInTheDocument();
   });
 
-  it('calls onClose when close button is clicked', () => {
-    const onClose = jest.fn();
+  it('calls onClose when Cancel button is clicked', () => {
     render(
-      <Provider store={store}>
-        <UnitDetailsModal
-          unit={mockUnit}
-          onClose={onClose}
-          onUpdate={() => {}}
-          onDelete={() => {}}
-        />
-      </Provider>
+      <UnitDetailsModal
+        unit={mockUnit}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
     );
 
-    // Find the close button by its aria-label
-    const closeButton = screen.getByLabelText(/close/i);
-    fireEvent.click(closeButton);
-    expect(onClose).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('Cancel'));
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('calls onDelete when delete button is clicked', () => {
-    const onDelete = jest.fn();
+  it('calls onSave with updated unit data when Save button is clicked', () => {
     render(
-      <Provider store={store}>
-        <UnitDetailsModal
-          unit={mockUnit}
-          onClose={() => {}}
-          onUpdate={() => {}}
-          onDelete={onDelete}
-        />
-      </Provider>
+      <UnitDetailsModal
+        unit={mockUnit}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
     );
 
-    // Find the delete button by its text content
-    const deleteButton = screen.getByText(/delete/i);
-    fireEvent.click(deleteButton);
-    expect(onDelete).toHaveBeenCalled();
-  });
+    const unitNumberInput = screen.getByLabelText('Unit Number');
+    const floorPlanInput = screen.getByLabelText('Floor Plan');
+    const statusSelect = screen.getByLabelText('Status');
+    const rentAmountInput = screen.getByLabelText('Rent Amount');
+    const squareFeetInput = screen.getByLabelText('Square Feet');
+    const bedroomsInput = screen.getByLabelText('Bedrooms');
+    const bathroomsInput = screen.getByLabelText('Bathrooms');
 
-  it('calls onUpdate when update button is clicked', () => {
-    const onUpdate = jest.fn();
-    render(
-      <Provider store={store}>
-        <UnitDetailsModal
-          unit={mockUnit}
-          onClose={() => {}}
-          onUpdate={onUpdate}
-          onDelete={() => {}}
-        />
-      </Provider>
-    );
+    fireEvent.change(unitNumberInput, { target: { value: 'B1' } });
+    fireEvent.change(floorPlanInput, { target: { value: '1BR' } });
+    fireEvent.change(statusSelect, { target: { value: 'occupied' } });
+    fireEvent.change(rentAmountInput, { target: { value: '1500' } });
+    fireEvent.change(squareFeetInput, { target: { value: '750' } });
+    fireEvent.change(bedroomsInput, { target: { value: '1' } });
+    fireEvent.change(bathroomsInput, { target: { value: '1' } });
 
-    // Find the update button by its text content
-    const updateButton = screen.getByText(/update/i);
-    fireEvent.click(updateButton);
-    expect(onUpdate).toHaveBeenCalled();
-  });
+    fireEvent.click(screen.getByText('Save Changes'));
 
-  it('renders N/A for null floor plan', () => {
-    const unitWithNullFloorPlan: PropertyUnit = {
+    expect(mockOnSave).toHaveBeenCalledWith({
       ...mockUnit,
-      floor_plan: null
-    };
+      unit_number: 'B1',
+      floor_plan: '1BR',
+      status: 'occupied',
+      rent_amount: 1500,
+      square_feet: 750,
+      bedrooms: 1,
+      bathrooms: 1,
+    });
+  });
 
+  it('validates required fields', () => {
     render(
-      <Provider store={store}>
-        <UnitDetailsModal
-          unit={unitWithNullFloorPlan}
-          onClose={() => {}}
-          onUpdate={() => {}}
-          onDelete={() => {}}
-        />
-      </Provider>
+      <UnitDetailsModal
+        unit={mockUnit}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
     );
 
-    expect(screen.getByText('N/A')).toBeInTheDocument();
+    const unitNumberInput = screen.getByLabelText('Unit Number');
+    fireEvent.change(unitNumberInput, { target: { value: '' } });
+
+    fireEvent.click(screen.getByText('Save Changes'));
+
+    expect(mockOnSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Unit number is required')).toBeInTheDocument();
+  });
+
+  it('validates rent amount is a positive number', () => {
+    render(
+      <UnitDetailsModal
+        unit={mockUnit}
+        onClose={mockOnClose}
+        onSave={mockOnSave}
+      />
+    );
+
+    const rentAmountInput = screen.getByLabelText('Rent Amount');
+    fireEvent.change(rentAmountInput, { target: { value: '-100' } });
+
+    fireEvent.click(screen.getByText('Save Changes'));
+
+    expect(mockOnSave).not.toHaveBeenCalled();
+    expect(screen.getByText('Rent amount must be positive')).toBeInTheDocument();
   });
 });

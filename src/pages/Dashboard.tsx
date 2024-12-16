@@ -1,70 +1,57 @@
-import React from 'react';
-import { Building2, Users, DollarSign, Wrench } from 'lucide-react';
-import PageHeader from '../components/ui/PageHeader';
-import StatItem from '../components/ui/Stats';
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Stats } from '@/components/ui/Stats';
+import { SentryTest } from '@/components/ui/SentryTest';
+import { withProfiler } from '@/lib/monitoring';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
+  useEffect(() => {
+    // Initialize any dashboard data
+  }, []);
+
   return (
-    <div>
-      <PageHeader 
-        title="Dashboard"
-        description="Overview of your property management metrics"
-      />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatItem
-          label="Total Properties"
-          value="12"
-          icon={<Building2 className="w-6 h-6 text-purple-600" />}
-          trend={{ value: 8, isPositive: true }}
-        />
-        <StatItem
-          label="Active Tenants"
-          value="48"
-          icon={<Users className="w-6 h-6 text-purple-600" />}
-          trend={{ value: 12, isPositive: true }}
-        />
-        <StatItem
-          label="Monthly Revenue"
-          value="$52,000"
-          icon={<DollarSign className="w-6 h-6 text-purple-600" />}
-          trend={{ value: 10, isPositive: true }}
-        />
-        <StatItem
-          label="Pending Maintenance"
-          value="5"
-          icon={<Wrench className="w-6 h-6 text-purple-600" />}
-          trend={{ value: 2, isPositive: false }}
-        />
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your property management system
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Activity items will be mapped here */}
-              <p className="text-muted-foreground">Loading activities...</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Payments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Payment items will be mapped here */}
-              <p className="text-muted-foreground">Loading payments...</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Stats
+            title="Properties"
+            value="12"
+            description="Total properties managed"
+          />
+          <Stats
+            title="Units"
+            value="48"
+            description="Total units across properties"
+          />
+          <Stats
+            title="Occupancy"
+            value="92%"
+            description="Current occupancy rate"
+          />
+        </div>
+
+        {/* Only show in development or for admin users */}
+        {(import.meta.env.DEV || process.env.NODE_ENV === 'development') && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Development Tools</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SentryTest />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
-}
+};
 
-export default Dashboard;
+// Wrap with Sentry profiler
+export default withProfiler(Dashboard, 'Dashboard');
