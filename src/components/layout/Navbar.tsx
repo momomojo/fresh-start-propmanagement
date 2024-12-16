@@ -1,68 +1,66 @@
 import React from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Menu, Sun, Moon, Bell } from 'lucide-react';
-import { toggleTheme, toggleSidebar } from '../../lib/store/slices/uiSlice';
-import { RootState } from '../../lib/store';
+import { useSelector, useDispatch } from 'react-redux';
+import { RootState } from '@/lib/store';
+import { toggleTheme, toggleSidebar } from '@/lib/store/slices/uiSlice';
+import { Button } from '@/components/ui/button';
+import { Sun, Moon, Menu } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const dispatch = useDispatch();
   const { theme } = useSelector((state: RootState) => state.ui);
-  const user = useSelector((state: RootState) => state.auth.user);
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  const handleThemeToggle = () => {
+    dispatch(toggleTheme());
+    document.documentElement.classList.toggle('dark');
+  };
+
+  const handleSidebarToggle = () => {
+    dispatch(toggleSidebar());
+  };
 
   return (
-    <header className="z-40 py-4 bg-white dark:bg-gray-800 shadow-md">
-      <div className="container flex items-center justify-between h-full px-6 mx-auto">
-        <button
-          className="p-1 mr-5 -ml-1 rounded-md lg:hidden focus:outline-none focus:shadow-outline-purple"
-          onClick={() => dispatch(toggleSidebar())}
-          aria-label="Menu"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-
-        <div className="flex justify-center flex-1 lg:mr-32">
-          <div className="relative w-full max-w-xl mr-6">
-            <input
-              className="w-full pl-8 pr-2 py-2 text-sm text-gray-700 placeholder-gray-600 bg-gray-100 border-0 rounded-md dark:placeholder-gray-500 dark:focus:shadow-outline-gray dark:focus:placeholder-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:placeholder-gray-500 focus:bg-white focus:border-purple-300 focus:outline-none focus:shadow-outline-purple form-input"
-              type="text"
-              placeholder="Search..."
-              aria-label="Search"
-            />
-          </div>
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-14 items-center px-4">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSidebarToggle}
+            className="md:hidden"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <span className="font-semibold">Property Management</span>
         </div>
 
-        <ul className="flex items-center flex-shrink-0 space-x-6">
-          <li className="flex">
-            <button
-              className="rounded-md focus:outline-none focus:shadow-outline-purple"
-              onClick={() => dispatch(toggleTheme())}
-              aria-label="Toggle color mode"
-            >
-              {theme === 'dark' ? (
-                <Sun className="w-5 h-5" />
-              ) : (
-                <Moon className="w-5 h-5" />
-              )}
-            </button>
-          </li>
-          <li className="relative">
-            <button className="relative align-middle rounded-md focus:outline-none focus:shadow-outline-purple">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-0 right-0 inline-block w-3 h-3 transform translate-x-1 -translate-y-1 bg-red-600 border-2 border-white rounded-full dark:border-gray-800"></span>
-            </button>
-          </li>
-          <li className="relative">
-            <button className="align-middle rounded-full focus:shadow-outline-purple focus:outline-none">
-              <img
-                className="object-cover w-8 h-8 rounded-full"
-                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.name || 'User'}`}
-                alt="User avatar"
-              />
-            </button>
-          </li>
-        </ul>
+        <div className="flex-1" />
+
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleThemeToggle}
+            className="h-9 w-9"
+          >
+            {theme === 'light' ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
+          </Button>
+
+          {user && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">{user.name}</span>
+              <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                {user.name[0].toUpperCase()}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </header>
+    </nav>
   );
 };
 

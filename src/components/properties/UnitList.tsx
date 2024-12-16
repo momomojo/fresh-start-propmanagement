@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import type { PropertyUnit } from '../../types';
-import Table from '../ui/Table/Table';
-import Card from '../ui/Card';
+import { Card } from '../ui/Card';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAppDispatch, useAppSelector } from '../../lib/store';
 import { fetchPropertyUnits } from '../../lib/store/slices/unitSlice';
@@ -81,12 +80,31 @@ const UnitList: React.FC<UnitListProps> = ({ propertyId, onUnitClick }) => {
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Property Units</h3>
         <div className="overflow-x-auto">
-          <Table
-            columns={columns}
-            data={units}
-            isLoading={status === 'loading' as ActionStatus}
-            data-testid="units-table"
-          />
+          <table className="w-full" data-testid="units-table">
+            <thead>
+              <tr>
+                {columns.map(column => (
+                  <th
+                    key={column.key}
+                    className="text-left p-4 border-b font-medium text-muted-foreground"
+                  >
+                    {column.title}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {units.map(unit => (
+                <tr key={unit.id} className="hover:bg-muted/50">
+                  {columns.map(column => (
+                    <td key={`${unit.id}-${column.key}`} className="p-4 border-b">
+                      {column.render ? column.render(unit) : unit[column.key as keyof PropertyUnit]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </Card>

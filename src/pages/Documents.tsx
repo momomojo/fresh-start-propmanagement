@@ -1,6 +1,6 @@
 import React from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import Card from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 
 const Documents: React.FC = () => {
   return (
@@ -10,7 +10,9 @@ const Documents: React.FC = () => {
         description="Manage property-related documents and contracts"
       />
       <Card>
-        <p className="text-gray-600 dark:text-gray-400">Document management coming soon...</p>
+        <CardContent>
+          <p className="text-muted-foreground">Document management coming soon...</p>
+        </CardContent>
       </Card>
     </div>
   );

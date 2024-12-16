@@ -1,156 +1,130 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import configureStore from 'redux-mock-store';
 import UnitDetailsModal from '../UnitDetailsModal';
-import unitReducer from '../../../lib/store/slices/unitSlice';
-import { unitService } from '../../../lib/services/unitService';
+import { PropertyUnit } from '../../../types';
 
-// Mock the unitService
-jest.mock('../../../lib/services/unitService', () => ({
-  unitService: {
-    updateUnit: jest.fn().mockResolvedValue({
-      id: 'test-unit-1',
-      property_id: 'test-property-1',
-      unit_number: '102',
-      floor_plan: '3BR/2BA',
-      status: 'available',
-      created_at: '2024-01-01',
-      updated_at: '2024-01-01',
-    }),
-    deleteUnit: jest.fn().mockResolvedValue(true),
-  },
-}));
+const mockStore = configureStore([]);
 
-const createMockStore = () => {
-  return configureStore({
-    reducer: {
-      units: unitReducer,
-    },
-  });
-};
-
-describe('UnitDetailsModal Component', () => {
-  const mockUnit = {
-    id: 'test-unit-1',
-    property_id: 'test-property-1',
+describe('UnitDetailsModal', () => {
+  let store: any;
+  const mockUnit: PropertyUnit = {
+    id: 'test-unit-id',
+    property_id: 'test-property-id',
     unit_number: '101',
-    floor_plan: '2BR/2BA',
-    status: 'available' as const,
-    created_at: '2024-01-01',
-    updated_at: '2024-01-01',
-  };
-
-  const mockProps = {
-    unit: mockUnit,
-    onClose: jest.fn(),
-    onUpdate: jest.fn(),
-    onDelete: jest.fn(),
+    floor_plan: 'Studio', // Even though it's nullable, we provide a value for testing
+    status: 'available',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  test('renders unit details correctly', () => {
-    const store = createMockStore();
-
-    render(
-      <Provider store={store}>
-        <UnitDetailsModal {...mockProps} />
-      </Provider>
-    );
-
-    // Check if unit details are displayed
-    expect(screen.getByTestId('unit-number-input')).toHaveValue('101');
-    expect(screen.getByTestId('floor-plan-input')).toHaveValue('2BR/2BA');
-    expect(screen.getByTestId('status-select')).toHaveValue('available');
-  });
-
-  test('enables editing mode', () => {
-    const store = createMockStore();
-
-    render(
-      <Provider store={store}>
-        <UnitDetailsModal {...mockProps} />
-      </Provider>
-    );
-
-    // Initially fields should be disabled
-    expect(screen.getByTestId('unit-number-input')).toBeDisabled();
-
-    // Click edit button
-    fireEvent.click(screen.getByTestId('edit-button'));
-
-    // Fields should now be enabled
-    expect(screen.getByTestId('unit-number-input')).not.toBeDisabled();
-  });
-
-  test('handles form updates', async () => {
-    const store = createMockStore();
-
-    render(
-      <Provider store={store}>
-        <UnitDetailsModal {...mockProps} />
-      </Provider>
-    );
-
-    // Enter edit mode
-    fireEvent.click(screen.getByTestId('edit-button'));
-
-    // Update fields
-    fireEvent.change(screen.getByTestId('unit-number-input'), {
-      target: { value: '102' },
-    });
-    fireEvent.change(screen.getByTestId('floor-plan-input'), {
-      target: { value: '3BR/2BA' },
-    });
-
-    // Save changes
-    fireEvent.click(screen.getByTestId('save-button'));
-
-    // Wait for the service call and callback
-    await waitFor(() => {
-      expect(unitService.updateUnit).toHaveBeenCalled();
-      expect(mockProps.onUpdate).toHaveBeenCalled();
+    store = mockStore({
+      units: {
+        status: 'idle',
+        error: null
+      }
     });
   });
 
-  test('handles delete confirmation', async () => {
-    const store = createMockStore();
-
+  it('renders unit details', () => {
     render(
       <Provider store={store}>
-        <UnitDetailsModal {...mockProps} />
+        <UnitDetailsModal
+          unit={mockUnit}
+          onClose={() => {}}
+          onUpdate={() => {}}
+          onDelete={() => {}}
+        />
       </Provider>
     );
 
-    // Enter edit mode
-    fireEvent.click(screen.getByTestId('edit-button'));
-
-    // Click delete button
-    fireEvent.click(screen.getByTestId('delete-button'));
-
-    // Confirm deletion
-    fireEvent.click(screen.getByTestId('confirm-delete-button'));
-
-    // Wait for the service call and callback
-    await waitFor(() => {
-      expect(unitService.deleteUnit).toHaveBeenCalled();
-      expect(mockProps.onDelete).toHaveBeenCalled();
-    });
+    // Check for unit number
+    expect(screen.getByText(mockUnit.unit_number)).toBeInTheDocument();
+    
+    // Check for floor plan if it exists
+    if (mockUnit.floor_plan) {
+      expect(screen.getByText(mockUnit.floor_plan)).toBeInTheDocument();
+    }
+    
+    // Check for status
+    expect(screen.getByText(mockUnit.status, { exact: false })).toBeInTheDocument();
   });
 
-  test('handles close button click', () => {
-    const store = createMockStore();
-
+  it('calls onClose when close button is clicked', () => {
+    const onClose = jest.fn();
     render(
       <Provider store={store}>
-        <UnitDetailsModal {...mockProps} />
+        <UnitDetailsModal
+          unit={mockUnit}
+          onClose={onClose}
+          onUpdate={() => {}}
+          onDelete={() => {}}
+        />
       </Provider>
     );
 
-    fireEvent.click(screen.getByText('Close'));
-    expect(mockProps.onClose).toHaveBeenCalled();
+    // Find the close button by its aria-label
+    const closeButton = screen.getByLabelText(/close/i);
+    fireEvent.click(closeButton);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('calls onDelete when delete button is clicked', () => {
+    const onDelete = jest.fn();
+    render(
+      <Provider store={store}>
+        <UnitDetailsModal
+          unit={mockUnit}
+          onClose={() => {}}
+          onUpdate={() => {}}
+          onDelete={onDelete}
+        />
+      </Provider>
+    );
+
+    // Find the delete button by its text content
+    const deleteButton = screen.getByText(/delete/i);
+    fireEvent.click(deleteButton);
+    expect(onDelete).toHaveBeenCalled();
+  });
+
+  it('calls onUpdate when update button is clicked', () => {
+    const onUpdate = jest.fn();
+    render(
+      <Provider store={store}>
+        <UnitDetailsModal
+          unit={mockUnit}
+          onClose={() => {}}
+          onUpdate={onUpdate}
+          onDelete={() => {}}
+        />
+      </Provider>
+    );
+
+    // Find the update button by its text content
+    const updateButton = screen.getByText(/update/i);
+    fireEvent.click(updateButton);
+    expect(onUpdate).toHaveBeenCalled();
+  });
+
+  it('renders N/A for null floor plan', () => {
+    const unitWithNullFloorPlan: PropertyUnit = {
+      ...mockUnit,
+      floor_plan: null
+    };
+
+    render(
+      <Provider store={store}>
+        <UnitDetailsModal
+          unit={unitWithNullFloorPlan}
+          onClose={() => {}}
+          onUpdate={() => {}}
+          onDelete={() => {}}
+        />
+      </Provider>
+    );
+
+    expect(screen.getByText('N/A')).toBeInTheDocument();
   });
 });

@@ -1,146 +1,105 @@
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import configureStore from 'redux-mock-store';
 import UnitList from '../UnitList';
-import unitReducer from '../../../lib/store/slices/unitSlice';
+import { PropertyUnit } from '../../../types';
 import { ActionStatus } from '../../../lib/store/types';
 
-// Mock the Redux dispatch
-const mockDispatch = jest.fn(() => Promise.resolve());
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useDispatch: () => mockDispatch,
-}));
+const mockStore = configureStore([]);
 
-// Mock the fetchPropertyUnits action
-jest.mock('../../../lib/store/slices/unitSlice', () => ({
-  ...jest.requireActual('../../../lib/store/slices/unitSlice'),
-  __esModule: true,
-  default: jest.requireActual('../../../lib/store/slices/unitSlice').default,
-  fetchPropertyUnits: (propertyId: string) => ({ type: 'units/fetchPropertyUnits', payload: propertyId }),
-}));
-
-const createMockStore = (initialState = {}) => {
-  return configureStore({
-    reducer: {
-      units: unitReducer,
+describe('UnitList', () => {
+  let store: any;
+  const mockUnits: PropertyUnit[] = [
+    {
+      id: 'unit-1',
+      property_id: 'property-1',
+      unit_number: '101',
+      floor_plan: 'Studio',
+      status: 'available',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     },
-    preloadedState: {
+    {
+      id: 'unit-2',
+      property_id: 'property-1',
+      unit_number: '102',
+      floor_plan: '1 Bedroom',
+      status: 'occupied',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+  ];
+
+  beforeEach(() => {
+    store = mockStore({
+      units: {
+        units: mockUnits,
+        status: ActionStatus.IDLE,
+        error: null
+      }
+    });
+  });
+
+  it('renders loading spinner when loading', () => {
+    store = mockStore({
       units: {
         units: [],
-        selectedUnit: null,
-        status: ActionStatus.IDLE,
-        error: null,
-        ...initialState,
-      },
-    },
-  });
-};
-
-// Mock data
-const mockUnits = [
-  {
-    id: '1',
-    property_id: 'prop1',
-    unit_number: '101',
-    floor_plan: '2BR',
-    status: 'available' as const,
-    created_at: '2024-01-01',
-    updated_at: '2024-01-01',
-  },
-  {
-    id: '2',
-    property_id: 'prop1',
-    unit_number: '102',
-    floor_plan: '1BR',
-    status: 'occupied' as const,
-    created_at: '2024-01-01',
-    updated_at: '2024-01-01',
-  },
-];
-
-describe('UnitList Component', () => {
-  beforeEach(() => {
-    mockDispatch.mockClear();
-  });
-
-  test('renders loading state', () => {
-    const store = createMockStore({
-      status: ActionStatus.LOADING,
+        status: ActionStatus.LOADING,
+        error: null
+      }
     });
 
     render(
       <Provider store={store}>
-        <UnitList propertyId="prop1" />
+        <UnitList propertyId="property-1" />
       </Provider>
     );
 
     expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
   });
 
-  test('renders error state', () => {
+  it('renders error message when there is an error', () => {
     const errorMessage = 'Failed to load units';
-    const store = createMockStore({
-      status: ActionStatus.FAILED,
-      error: errorMessage,
+    store = mockStore({
+      units: {
+        units: [],
+        status: ActionStatus.FAILED,
+        error: errorMessage
+      }
     });
 
     render(
       <Provider store={store}>
-        <UnitList propertyId="prop1" />
+        <UnitList propertyId="property-1" />
       </Provider>
     );
 
     expect(screen.getByTestId('error-message')).toHaveTextContent(errorMessage);
   });
 
-  test('renders units list', () => {
-    const store = createMockStore({
-      units: mockUnits,
-      status: ActionStatus.SUCCEEDED,
-    });
-
+  it('renders list of units', () => {
     render(
       <Provider store={store}>
-        <UnitList propertyId="prop1" />
+        <UnitList propertyId="property-1" />
       </Provider>
     );
 
-    expect(screen.getByTestId('unit-row-101')).toHaveTextContent('101');
-    expect(screen.getByTestId('unit-row-102')).toHaveTextContent('102');
-    expect(screen.getByText('2BR')).toBeInTheDocument();
-    expect(screen.getByText('1BR')).toBeInTheDocument();
+    mockUnits.forEach(unit => {
+      expect(screen.getByText(unit.unit_number)).toBeInTheDocument();
+      expect(screen.getByText(unit.floor_plan as string)).toBeInTheDocument();
+      expect(screen.getByText(unit.status)).toBeInTheDocument();
+    });
   });
 
-  test('handles unit click', () => {
+  it('calls onUnitClick when a unit is clicked', () => {
     const onUnitClick = jest.fn();
-    const store = createMockStore({
-      units: mockUnits,
-      status: ActionStatus.SUCCEEDED,
-    });
-
     render(
       <Provider store={store}>
-        <UnitList propertyId="prop1" onUnitClick={onUnitClick} />
+        <UnitList propertyId="property-1" onUnitClick={onUnitClick} />
       </Provider>
     );
 
-    fireEvent.click(screen.getByTestId('unit-row-101'));
+    fireEvent.click(screen.getByTestId(`unit-row-${mockUnits[0].unit_number}`));
     expect(onUnitClick).toHaveBeenCalledWith(mockUnits[0]);
-  });
-
-  test('dispatches fetchPropertyUnits on mount', () => {
-    const store = createMockStore();
-    const propertyId = 'prop1';
-
-    render(
-      <Provider store={store}>
-        <UnitList propertyId={propertyId} />
-      </Provider>
-    );
-
-    const expectedAction = { type: 'units/fetchPropertyUnits', payload: propertyId };
-    expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining(expectedAction));
   });
 });

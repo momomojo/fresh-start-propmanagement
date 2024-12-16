@@ -10,6 +10,10 @@ class PropertyService {
     return firebaseService.getProperty(id);
   }
 
+  async getPropertyByUnitId(unitId: string): Promise<Property | null> {
+    return firebaseService.getPropertyByUnitId(unitId);
+  }
+
   async createProperty(data: Omit<Property, 'id' | 'created_at' | 'updated_at'>): Promise<Property> {
     return firebaseService.createProperty(data);
   }

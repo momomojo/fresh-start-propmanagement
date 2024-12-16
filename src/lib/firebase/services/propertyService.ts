@@ -32,6 +32,25 @@ class PropertyService {
     } as Property;
   }
 
+  async getPropertyByUnitId(unitId: string): Promise<Property | null> {
+    try {
+      // First get the unit to find its property_id
+      const unitRef = doc(db, COLLECTIONS.UNITS, unitId);
+      const unitSnap = await getDoc(unitRef);
+      
+      if (!unitSnap.exists()) return null;
+      
+      const propertyId = unitSnap.data().property_id;
+      if (!propertyId) return null;
+
+      // Then get the property using the property_id
+      return this.getProperty(propertyId);
+    } catch (error) {
+      console.error('Error getting property by unit ID:', error);
+      return null;
+    }
+  }
+
   async createProperty(data: Omit<Property, 'id' | 'created_at' | 'updated_at'>): Promise<Property> {
     const propertiesRef = collection(db, COLLECTIONS.PROPERTIES);
     const docRef = await addDoc(propertiesRef, {

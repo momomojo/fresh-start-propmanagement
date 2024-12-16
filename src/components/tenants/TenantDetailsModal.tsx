@@ -1,180 +1,138 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
-import { X, User, Calendar, DollarSign, Home } from 'lucide-react';
-import { tenantService } from '../../lib/services/tenantService';
-import { updateTenant } from '../../lib/store/slices/tenantSlice';
-import FormField from '../ui/Form/FormField';
-import Input from '../ui/Form/Input';
-import Card from '../ui/Card';
+import { X } from 'lucide-react';
+import { propertyService } from '../../lib/services/propertyService';
+import { Card } from '../ui/Card';
+import type { Tenant, Property } from '../../types';
 
 interface TenantDetailsModalProps {
-  tenantId: string;
+  tenant: Tenant;
   onClose: () => void;
 }
 
-const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({ tenantId, onClose }) => {
-  const dispatch = useDispatch();
-  const [tenant, setTenant] = React.useState<Awaited<ReturnType<typeof tenantService.getTenant>> | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+const TenantDetailsModal: React.FC<TenantDetailsModalProps> = ({ tenant, onClose }) => {
+  const [property, setProperty] = React.useState<Property | null>(null);
 
   React.useEffect(() => {
-    const fetchTenant = async () => {
-      try {
-        setIsLoading(true);
-        const data = await tenantService.getTenant(tenantId);
-        setTenant(data);
-      } catch (error) {
-        setError('Failed to load tenant details');
-        console.error('Error fetching tenant:', error);
-      } finally {
-        setIsLoading(false);
+    const fetchProperty = async () => {
+      if (tenant.lease?.unit_id) {
+        try {
+          const propertyData = await propertyService.getPropertyByUnitId(tenant.lease.unit_id);
+          setProperty(propertyData);
+        } catch (error) {
+          console.error('Error fetching property:', error);
+        }
       }
     };
 
-    fetchTenant();
-  }, [tenantId]);
-
-  if (!tenant && !isLoading) return null;
+    fetchProperty();
+  }, [tenant.lease?.unit_id]);
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black opacity-30" onClick={onClose}></div>
-        
-        <div className="relative w-full max-w-4xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Tenant Details
-            </h2>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+      <Card className="max-w-2xl w-full">
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h2 className="text-2xl font-semibold">{tenant.name}</h2>
+              <p className="text-muted-foreground">{tenant.email}</p>
+            </div>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
           </div>
 
-          {error && (
-            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/50 dark:text-red-400">
-              {error}
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-2">Status</h3>
+              <span
+                className={`px-3 py-1 rounded-full text-sm ${
+                  tenant.status === 'active'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800'
+                }`}
+              >
+                {tenant.status}
+              </span>
             </div>
-          )}
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          ) : tenant ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="col-span-1">
-                  <div className="flex flex-col items-center">
-                    <img
-                      src={tenant.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(tenant.name)}`}
-                      alt={tenant.name}
-                      className="w-32 h-32 rounded-full mb-4"
-                    />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                      {tenant.name}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {tenant.email}
-                    </p>
-                  </div>
-                </Card>
-
-                <Card className="col-span-2">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                    Lease Information
-                  </h3>
-                  {tenant.lease ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Start Date
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                            {new Date(tenant.lease.start_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            End Date
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                            {new Date(tenant.lease.end_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Monthly Rent
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                            {new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD'
-                            }).format(tenant.lease.rent_amount)}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Security Deposit
-                          </label>
-                          <p className="mt-1 text-sm text-gray-900 dark:text-white">
-                            {new Intl.NumberFormat('en-US', {
-                              style: 'currency',
-                              currency: 'USD'
-                            }).format(tenant.lease.deposit_amount)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      No active lease
-                    </p>
-                  )}
-                </Card>
+            {property && (
+              <div>
+                <h3 className="text-lg font-medium mb-2">Property</h3>
+                <p>{property.name}</p>
+                <p className="text-muted-foreground">{property.address}</p>
               </div>
+            )}
 
-              <Card>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                  Payment History
-                </h3>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead>
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      <tr>
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400" colSpan={4}>
-                          No payment history available
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+            {tenant.lease && (
+              <div>
+                <h3 className="text-lg font-medium mb-2">Lease Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-muted-foreground">Start Date</p>
+                    <p>{new Date(tenant.lease.start_date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">End Date</p>
+                    <p>{new Date(tenant.lease.end_date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Rent</p>
+                    <p>${tenant.lease.rent_amount.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Deposit</p>
+                    <p>${tenant.lease.deposit_amount.toFixed(2)}</p>
+                  </div>
                 </div>
-              </Card>
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-lg font-medium mb-2">Payment Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-muted-foreground">Balance</p>
+                  <p>${tenant.balance.toFixed(2)}</p>
+                </div>
+                {tenant.lastPaymentDate && (
+                  <div>
+                    <p className="text-muted-foreground">Last Payment</p>
+                    <p>{new Date(tenant.lastPaymentDate).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {tenant.nextPaymentDue && (
+                  <div>
+                    <p className="text-muted-foreground">Next Payment Due</p>
+                    <p>{new Date(tenant.nextPaymentDue).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
             </div>
-          ) : null}
+
+            {tenant.documents.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium mb-2">Documents</h3>
+                <ul className="space-y-2">
+                  {tenant.documents.map((doc) => (
+                    <li
+                      key={doc.id}
+                      className="flex items-center justify-between p-2 bg-muted rounded-md"
+                    >
+                      <span>{doc.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(doc.uploadedAt).toLocaleDateString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

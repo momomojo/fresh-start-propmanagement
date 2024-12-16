@@ -1,6 +1,6 @@
 import React from 'react';
 import PageHeader from '../components/ui/PageHeader';
-import Card from '../components/ui/Card';
+import { Card, CardContent } from '../components/ui/Card';
 
 const Maintenance: React.FC = () => {
   return (
@@ -10,7 +10,9 @@ const Maintenance: React.FC = () => {
         description="Track and manage maintenance requests"
       />
       <Card>
-        <p className="text-gray-600 dark:text-gray-400">Maintenance requests coming soon...</p>
+        <CardContent>
+          <p className="text-muted-foreground">Maintenance requests coming soon...</p>
+        </CardContent>
       </Card>
     </div>
   );

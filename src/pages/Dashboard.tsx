@@ -2,7 +2,7 @@ import React from 'react';
 import { Building2, Users, DollarSign, Wrench } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import StatItem from '../components/ui/Stats';
-import Card from '../components/ui/Card';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 
 const Dashboard: React.FC = () => {
   return (
@@ -41,18 +41,26 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <h2 className="text-lg font-semibold mb-4">Recent Activities</h2>
-          <div className="space-y-4">
-            {/* Activity items will be mapped here */}
-            <p className="text-gray-600 dark:text-gray-400">Loading activities...</p>
-          </div>
+          <CardHeader>
+            <CardTitle>Recent Activities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Activity items will be mapped here */}
+              <p className="text-muted-foreground">Loading activities...</p>
+            </div>
+          </CardContent>
         </Card>
         <Card>
-          <h2 className="text-lg font-semibold mb-4">Upcoming Payments</h2>
-          <div className="space-y-4">
-            {/* Payment items will be mapped here */}
-            <p className="text-gray-600 dark:text-gray-400">Loading payments...</p>
-          </div>
+          <CardHeader>
+            <CardTitle>Upcoming Payments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Payment items will be mapped here */}
+              <p className="text-muted-foreground">Loading payments...</p>
+            </div>
+          </CardContent>
         </Card>
       </div>
     </div>

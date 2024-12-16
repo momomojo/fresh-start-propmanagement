@@ -1,31 +1,44 @@
 import React from 'react';
 import { z } from 'zod';
-import { authService } from '../../lib/services/authService';
-import FormField from '../ui/Form/FormField';
-import Input from '../ui/Form/Input';
-import Card from '../ui/Card';
+import { authService } from '@/lib/services/authService';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string()
+  currentPassword: z.string().min(6, 'Current password is required'),
+  newPassword: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
 
 const SecuritySettings: React.FC = () => {
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [error, setError] = React.useState<string | null>(null);
+  const [success, setSuccess] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
-    setSuccessMessage(null);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
     setIsLoading(true);
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(event.currentTarget);
     const data = {
       currentPassword: formData.get('currentPassword') as string,
       newPassword: formData.get('newPassword') as string,
@@ -34,21 +47,19 @@ const SecuritySettings: React.FC = () => {
 
     try {
       const validated = passwordSchema.parse(data);
-      await authService.updatePassword(validated.currentPassword, validated.newPassword);
-      setSuccessMessage('Password updated successfully');
-      e.currentTarget.reset();
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        const newErrors: Record<string, string> = {};
-        error.errors.forEach((err) => {
-          if (err.path) {
-            newErrors[err.path[0]] = err.message;
-          }
-        });
-        setErrors(newErrors);
+      await authService.updatePassword(
+        validated.currentPassword,
+        validated.newPassword
+      );
+      setSuccess('Password updated successfully');
+      event.currentTarget.reset();
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setError(err.errors[0].message);
       } else {
-        setErrors({ form: 'Failed to update password. Please verify your current password.' });
+        setError('Failed to update password');
       }
+      console.error('Password update error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -56,55 +67,73 @@ const SecuritySettings: React.FC = () => {
 
   return (
     <Card>
-      <h2 className="text-xl font-semibold mb-6">Security Settings</h2>
+      <CardHeader>
+        <CardTitle>Security Settings</CardTitle>
+        <CardDescription>
+          Update your password and manage security preferences
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form id="security-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <Input
+              id="currentPassword"
+              name="currentPassword"
+              type="password"
+              required
+              disabled={isLoading}
+              className="mt-1"
+            />
+          </div>
 
-      {successMessage && (
-        <div className="mb-4 rounded-md bg-green-50 p-4 text-sm text-green-600 dark:bg-green-900/50 dark:text-green-400">
-          {successMessage}
-        </div>
-      )}
+          <div>
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              name="newPassword"
+              type="password"
+              required
+              disabled={isLoading}
+              className="mt-1"
+            />
+          </div>
 
-      {errors.form && (
-        <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/50 dark:text-red-400">
-          {errors.form}
-        </div>
-      )}
+          <div>
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type="password"
+              required
+              disabled={isLoading}
+              className="mt-1"
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <FormField label="Current Password" error={errors.currentPassword} required>
-          <Input
-            name="currentPassword"
-            type="password"
-            error={!!errors.currentPassword}
-          />
-        </FormField>
+          {error && (
+            <div className="text-sm text-destructive" role="alert">
+              {error}
+            </div>
+          )}
 
-        <FormField label="New Password" error={errors.newPassword} required>
-          <Input
-            name="newPassword"
-            type="password"
-            error={!!errors.newPassword}
-          />
-        </FormField>
-
-        <FormField label="Confirm New Password" error={errors.confirmPassword} required>
-          <Input
-            name="confirmPassword"
-            type="password"
-            error={!!errors.confirmPassword}
-          />
-        </FormField>
-
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
-          >
-            {isLoading ? 'Updating...' : 'Update Password'}
-          </button>
-        </div>
-      </form>
+          {success && (
+            <div className="text-sm text-green-600 dark:text-green-400" role="alert">
+              {success}
+            </div>
+          )}
+        </form>
+      </CardContent>
+      <CardFooter>
+        <Button
+          type="submit"
+          form="security-form"
+          disabled={isLoading}
+          className="ml-auto"
+        >
+          {isLoading ? 'Updating...' : 'Update Password'}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
