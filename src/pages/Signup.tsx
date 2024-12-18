@@ -1,10 +1,10 @@
+// src/pages/Signup.tsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
-import { setUser, setToken } from '../lib/store/slices/authSlice';
 import FormField from '../components/ui/Form/FormField';
 import Input from '../components/ui/Form/Input';
 import Select from '../components/ui/Form/Select';
@@ -31,7 +31,7 @@ const Signup: React.FC = () => {
     e.preventDefault();
     setErrors({});
     setIsLoading(true);
-
+    
     const formData = new FormData(e.currentTarget);
     const data = {
       name: formData.get('name') as string,
@@ -40,18 +40,15 @@ const Signup: React.FC = () => {
       confirmPassword: formData.get('confirmPassword') as string,
       role: formData.get('role') as UserRole,
     };
-
     try {
       const validated = signupSchema.parse(data);
-      const { user, token } = await authService.register({
+      const { user } = await authService.signup({
         email: validated.email,
         password: validated.password,
         name: validated.name,
         role: validated.role,
       });
-
       dispatch(setUser(user));
-      dispatch(setToken(token));
       navigate('/');
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -63,8 +60,7 @@ const Signup: React.FC = () => {
         });
         setErrors(newErrors);
       } else {
-        const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
-        setErrors({ form: errorMessage });
+        setErrors({ form: error instanceof Error ? error.message : 'Signup failed' });
       }
     } finally {
       setIsLoading(false);
@@ -83,21 +79,16 @@ const Signup: React.FC = () => {
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
             Or{' '}
-            <a
-              href="/login"
-              className="font-medium text-purple-600 hover:text-purple-500"
-            >
+            <a href="/login" className="font-medium text-purple-600 hover:text-purple-500">
               sign in to your account
             </a>
           </p>
         </div>
-
         {errors.form && (
           <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-md p-4 text-sm text-red-600 dark:text-red-400">
             {errors.form}
           </div>
         )}
-
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <FormField label="Full Name" error={errors.name} required>
@@ -159,8 +150,8 @@ const Signup: React.FC = () => {
             </button>
           </div>
         </form>
-      </div>
     </div>
+  </div>
   );
 };
 

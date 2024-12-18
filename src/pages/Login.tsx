@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
 import { setUser, setStatus, setError } from '../lib/store/slices/authSlice';
+import { RootState } from '../lib/store';
 import { ActionStatus } from '../lib/store/types';
 
 const loginSchema = z.object({
@@ -15,13 +16,15 @@ const loginSchema = z.object({
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(false);
   const { status, error } = useSelector((state: RootState) => state.auth);
-  const isLoading = status === ActionStatus.LOADING;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    console.log('Form submission started');
     dispatch(setError(null));
     dispatch(setStatus(ActionStatus.LOADING));
+    setIsLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const data = {
@@ -31,15 +34,21 @@ const Login: React.FC = () => {
 
     try {
       const validated = loginSchema.parse(data);
+      console.log('Form validation passed');
       const { user } = await authService.login(
         validated.email,
         validated.password
       );
-
+      console.log('Login successful, dispatching user');
       dispatch(setUser(user));
       navigate('/');
     } catch (error) {
-      dispatch(setError('Invalid email or password'));
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      dispatch(setError(errorMessage));
+      dispatch(setStatus(ActionStatus.FAILED));
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -126,7 +135,7 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Signing in...' : 'Sign in'}
             </button>

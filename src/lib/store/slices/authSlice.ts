@@ -1,11 +1,12 @@
+// src/lib/store/slices/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { checkConnection } from '@/lib/utils/network';
 import { ActionStatus } from '../types';
-import type { User } from '../../../types';
+import type { User } from '../../types';
 
 interface AuthState {
   user: User | null;
   status: ActionStatus;
+  token: string | null;
   error: string | null;
   isInitialized: boolean;
 }
@@ -13,6 +14,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   status: ActionStatus.IDLE,
+  token: null,
   error: null,
   isInitialized: false
 };
@@ -21,9 +23,10 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setUser: (state, action: PayloadAction<User | null>) => {
+    setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
       state.status = ActionStatus.SUCCEEDED;
+      state.token = null; // Reset token when user changes
       state.error = null;
       state.isInitialized = true;
     },
@@ -35,8 +38,12 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.status = ActionStatus.FAILED;
     },
+    setToken: (state, action: PayloadAction<string>) => {
+      state.token = action.payload;
+    },
     logout: (state) => {
       state.user = null;
+      state.token = null;
       state.status = ActionStatus.IDLE;
       state.error = null;
       state.isInitialized = true;
@@ -44,5 +51,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setUser, setStatus, setError, logout } = authSlice.actions;
+export const { setUser, setStatus, setError, setToken, logout } = authSlice.actions;
 export default authSlice.reducer;
