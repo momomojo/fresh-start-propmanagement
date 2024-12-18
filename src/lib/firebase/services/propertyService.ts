@@ -22,16 +22,10 @@ class PropertyService extends BaseFirestoreService {
   async getProperties(): Promise<Property[]> {
     try {
       // Verify authentication
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('User must be authenticated');
-      }
+      await this.verifyAuth();
 
       // Get user profile to check role
-      const userDoc = await this.getUserProfile(user.uid);
-      if (!userDoc) {
-        throw new Error('User profile not found');
-      }
+      await this.verifyUserProfile();
 
       return await this.list<Property>();
     } catch (error) {
@@ -47,10 +41,7 @@ class PropertyService extends BaseFirestoreService {
 
   async getProperty(id: string): Promise<Property | null> {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('User must be authenticated');
-      }
+      await this.verifyAuth();
 
       return await this.get<Property>(id);
     } catch (error) {

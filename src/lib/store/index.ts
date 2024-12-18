@@ -1,7 +1,7 @@
 import { configureStore, ThunkAction, Action, Middleware } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { firestoreMiddleware } from './middleware/firestoreMiddleware';
-import { db, auth, storage } from '../firebase/config';
+import { db, auth, storage } from '../db';
 import authReducer from './slices/authSlice';
 import propertyReducer from './slices/propertySlice';
 import uiReducer from './slices/uiSlice';
