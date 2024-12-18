@@ -5,7 +5,7 @@ import { SecuritySettings } from '@/components/settings/SecuritySettings';
 import { AdminSettings } from '@/components/settings/AdminSettings';
 import { User } from '@/types';
 
-export const Settings = () => {
+const Settings = () => {
   const [user] = useState<User>({
     id: '1',
     name: 'John Doe',
@@ -69,3 +69,5 @@ export const Settings = () => {
     </div>
   );
 };
+
+export default Settings;

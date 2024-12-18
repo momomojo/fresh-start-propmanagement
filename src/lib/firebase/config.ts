@@ -1,29 +1,60 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
+// Ensure required environment variables are present
+const requiredEnvVars = [
+  'VITE_FIREBASE_API_KEY',
+  'VITE_FIREBASE_AUTH_DOMAIN',
+  'VITE_FIREBASE_PROJECT_ID',
+  'VITE_FIREBASE_STORAGE_BUCKET',
+  'VITE_FIREBASE_MESSAGING_SENDER_ID',
+  'VITE_FIREBASE_APP_ID'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!import.meta.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
+  }
+}
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBBMCXwjLt3hGRvC7ZDf4Crj-ZOK_A1SwQ",
-  authDomain: "prop-management-4f1cc.firebaseapp.com",
-  projectId: "prop-management-4f1cc",
-  storageBucket: "prop-management-4f1cc.firebasestorage.app",
-  messagingSenderId: "494993300962",
-  appId: "1:494993300962:web:cbcea8be2d42478de5adbb",
-  measurementId: "G-BHVBHTCZ97"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+let app;
+let firestoreDb;
+let firebaseAuth;
+let firebaseStorage;
+
+try {
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+  app = initializeApp(firebaseConfig);
+  firestoreDb = getFirestore(app);
+  firebaseAuth = getAuth(app);
+  firebaseStorage = getStorage(app);
 
-// Initialize Firestore
-export const db = getFirestore(app);
+  // Enable offline persistence
+  Promise.all([
+    setPersistence(firebaseAuth, browserLocalPersistence),
+    enableIndexedDbPersistence(firestoreDb)
+  ]).catch((error) => {
+    console.warn('Error enabling persistence:', error);
+  });
 
-// Initialize Auth
-export const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence);
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+  throw error;
+}
 
-// Initialize Storage
-export const storage = getStorage(app);
-
+export const db = firestoreDb;
+export const auth = firebaseAuth;
+export const storage = firebaseStorage;
 export default app;

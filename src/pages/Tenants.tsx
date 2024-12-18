@@ -1,8 +1,8 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Users, Plus, Search, Filter, Pencil, Trash2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import PageHeader from '../components/ui/PageHeader';
-import Card from '../components/ui/Card';
 import Table from '../components/ui/Table/Table';
 import TablePagination from '../components/ui/Table/TablePagination';
 import AddTenantModal from '../components/tenants/AddTenantModal';

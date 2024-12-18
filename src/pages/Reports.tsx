@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-export const Reports = () => {
+const Reports = () => {
   const [reports] = useState([
     {
       id: '1',
@@ -72,3 +72,5 @@ export const Reports = () => {
     </div>
   );
 };
+
+export default Reports;

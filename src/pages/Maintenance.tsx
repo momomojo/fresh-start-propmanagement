@@ -1,33 +1,18 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { RootState, AppDispatch } from '@/lib/store';
+import { fetchMaintenanceRequests } from '@/lib/store/slices/maintenanceSlice';
 import { MaintenanceRequest } from '@/types';
 
-export const Maintenance = () => {
-  const [requests] = useState<MaintenanceRequest[]>([
-    {
-      id: '1',
-      tenant_id: '1',
-      property_id: '1',
-      title: 'Leaking Faucet',
-      description: 'Kitchen sink faucet is leaking',
-      priority: 'medium',
-      status: 'pending',
-      created_at: '2024-01-15',
-      updated_at: '2024-01-15',
-    },
-    {
-      id: '2',
-      tenant_id: '2',
-      property_id: '1',
-      title: 'AC Not Working',
-      description: 'Air conditioning unit not cooling',
-      priority: 'high',
-      status: 'in_progress',
-      created_at: '2024-01-14',
-      updated_at: '2024-01-15',
-    },
-  ]);
+const Maintenance = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { requests, loading, error } = useSelector((state: RootState) => state.maintenance);
+
+  useEffect(() => {
+    dispatch(fetchMaintenanceRequests());
+  }, [dispatch]);
 
   const getPriorityColor = (priority: MaintenanceRequest['priority']) => {
     switch (priority) {
@@ -56,6 +41,22 @@ export const Maintenance = () => {
         return '';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-red-600 bg-red-50 rounded-md">
+        Error loading maintenance requests: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -111,3 +112,5 @@ export const Maintenance = () => {
     </div>
   );
 };
+
+export default Maintenance;

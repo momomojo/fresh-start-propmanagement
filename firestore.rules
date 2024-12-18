@@ -3,22 +3,26 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Helper functions
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
     
     function isAdmin() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     function isPropertyManager() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'property_manager';
     }
     
     function isTenant() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant';
     }
     
@@ -30,9 +34,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    function hasUserProfile() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     // Properties collection
     match /properties/{propertyId} {
-      allow read: if isAuthenticated();
+      allow read: if hasUserProfile();
       allow create: if isAdmin() || isPropertyManager();
       allow update: if isAdmin() || isPropertyManager();
       allow delete: if isAdmin();
@@ -40,7 +49,7 @@ service cloud.firestore {
     
     // Units collection
     match /units/{unitId} {
-      allow read: if isAuthenticated();
+      allow read: if hasUserProfile();
       allow create: if isAdmin() || isPropertyManager();
       allow update: if isAdmin() || isPropertyManager();
       allow delete: if isAdmin();

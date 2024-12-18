@@ -11,7 +11,7 @@ interface TenantDetailsModalProps {
   onSave: (tenant: Tenant) => void;
 }
 
-export const TenantDetailsModal = ({
+const TenantDetailsModal = ({
   tenant,
   onClose,
   onSave,
@@ -120,3 +120,5 @@ export const TenantDetailsModal = ({
     </div>
   );
 };
+
+export default TenantDetailsModal;

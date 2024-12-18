@@ -6,6 +6,7 @@ import propertyReducer from './slices/propertySlice';
 import uiReducer from './slices/uiSlice';
 import tenantReducer from './slices/tenantSlice';
 import unitReducer from './slices/unitSlice';
+import maintenanceReducer from './slices/maintenanceSlice';
 
 // Define the reducer type first
 type Reducers = {
@@ -14,6 +15,7 @@ type Reducers = {
   ui: ReturnType<typeof uiReducer>;
   tenants: ReturnType<typeof tenantReducer>;
   units: ReturnType<typeof unitReducer>;
+  maintenance: ReturnType<typeof maintenanceReducer>;
 };
 
 // Create the store configuration
@@ -24,6 +26,7 @@ const storeConfig = {
     ui: uiReducer,
     tenants: tenantReducer,
     units: unitReducer,
+    maintenance: maintenanceReducer,
   },
   middleware: (getDefaultMiddleware: any) =>
     getDefaultMiddleware({

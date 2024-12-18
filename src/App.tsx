@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, Provider } from 'react-redux';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@/components/theme-provider';
 import { store, RootState } from './lib/store';
 import { initializeDatabase } from './lib/db/initialize';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -89,7 +90,9 @@ const AppContent = () => {
 function App() {
   return (
     <Provider store={store}>
+      <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
       <AppContent />
+      </ThemeProvider>
     </Provider>
   );
 }
