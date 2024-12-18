@@ -1,0 +1,184 @@
+# State Management Architecture
+
+## Current Issues
+1. Unclear boundaries between Firebase and Redux state
+2. Inconsistent state updates
+3. Missing proper loading and error states
+4. No clear data flow patterns
+
+## Proposed Solution
+
+### 1. State Layer Separation
+
+```typescript
+// Firebase State (Source of Truth)
+interface FirebaseState {
+  auth: FirebaseAuth;
+  firestore: FirebaseFirestore;
+}
+
+// Redux State (UI State)
+interface ReduxState {
+  auth: AuthState;
+  ui: UIState;
+  entities: EntityState;
+  errors: ErrorState;
+}
+
+// Local Component State
+interface LocalState {
+  loading: boolean;
+  error: Error | null;
+  data: any;
+}
+```
+
+### 2. State Update Flow
+
+```
+1. Data Changes
+   Firebase -> Redux Store -> UI Components
+
+2. User Actions
+   UI Components -> Redux Actions -> Firebase -> Redux Store
+
+3. Error Handling
+   Any Layer -> Error State -> UI Components
+```
+
+### 3. State Categories
+
+```typescript
+// 1. Authentication State
+interface AuthState {
+  status: 'initializing' | 'authenticated' | 'unauthenticated';
+  user: User | null;
+  error: Error | null;
+  token: string | null;
+}
+
+// 2. UI State
+interface UIState {
+  theme: 'light' | 'dark';
+  sidebar: {
+    isOpen: boolean;
+    activeItem: string;
+  };
+  modals: {
+    [key: string]: boolean;
+  };
+}
+
+// 3. Entity State
+interface EntityState {
+  properties: {
+    ids: string[];
+    entities: { [key: string]: Property };
+    loading: boolean;
+    error: Error | null;
+  };
+  // Similar for other entities
+}
+
+// 4. Error State
+interface ErrorState {
+  global: Error | null;
+  auth: Error | null;
+  entities: {
+    [key: string]: Error | null;
+  };
+}
+```
+
+### 4. State Management Rules
+
+1. Single Source of Truth
+   - Firebase is the source of truth for all data
+   - Redux stores UI state and caches Firebase data
+   - Component state only for local UI concerns
+
+2. Unidirectional Data Flow
+   - Data flows from Firebase -> Redux -> Components
+   - Actions flow from Components -> Redux -> Firebase
+
+3. State Updates
+   - Atomic updates for consistency
+   - Optimistic updates where appropriate
+   - Error handling at each layer
+
+## Implementation Steps
+
+1. Create Base State Types
+```typescript
+// src/types/state.ts
+export interface RootState {
+  auth: AuthState;
+  ui: UIState;
+  entities: EntityState;
+  errors: ErrorState;
+}
+```
+
+2. Implement State Slices
+```typescript
+// src/store/slices/authSlice.ts
+const authSlice = createSlice({
+  name: 'auth',
+  initialState,
+  reducers: {
+    setAuthState: (state, action: PayloadAction<AuthState>) => {
+      return { ...state, ...action.payload };
+    },
+    // Other reducers...
+  }
+});
+```
+
+3. Create Selectors
+```typescript
+// src/store/selectors/auth.ts
+export const selectAuthState = (state: RootState) => state.auth;
+export const selectIsAuthenticated = (state: RootState) => 
+  state.auth.status === 'authenticated';
+```
+
+4. Implement Error Handling
+```typescript
+// src/store/slices/errorSlice.ts
+const errorSlice = createSlice({
+  name: 'errors',
+  initialState,
+  reducers: {
+    setError: (state, action: PayloadAction<{ type: string; error: Error }>) => {
+      const { type, error } = action.payload;
+      state[type] = error;
+    },
+    clearError: (state, action: PayloadAction<string>) => {
+      state[action.payload] = null;
+    }
+  }
+});
+```
+
+## Next Steps
+
+1. Implement all state slices
+2. Create comprehensive selectors
+3. Add middleware for side effects
+4. Implement error handling
+5. Add state persistence where needed
+
+## Dependencies
+
+- Redux toolkit configuration
+- Firebase configuration
+- Type definitions
+
+## Success Criteria
+
+1. Clear state boundaries
+2. Consistent state updates
+3. Proper error handling
+4. Efficient state management
+5. Type safety
+6. Clear data flow patterns

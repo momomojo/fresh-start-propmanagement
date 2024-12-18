@@ -1,0 +1,176 @@
+# Firestore Security Rules
+
+## Current Issues
+1. Overly complex role checking
+2. No proper handling of new user states
+3. Circular dependency between auth and document existence
+4. Missing proper error messages
+
+## Proposed Solution
+
+### 1. Base Security Rules
+
+```javascript
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isUserInitialized() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function hasRole(role) {
+      return isUserInitialized() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    function isPropertyManager() {
+      return hasRole('property_manager');
+    }
+
+    function isTenant() {
+      return hasRole('tenant');
+    }
+
+    // User Collection Rules
+    match /users/{userId} {
+      // Allow creation of own user document during signup
+      allow create: if isAuthenticated() && 
+                    request.auth.uid == userId &&
+                    request.resource.data.keys().hasAll(['email', 'role', 'name']);
+      
+      // Allow reading own user document
+      allow read: if isAuthenticated() && 
+                   (request.auth.uid == userId || isAdmin());
+      
+      // Allow updates to own user document
+      allow update: if isAuthenticated() && 
+                    (request.auth.uid == userId || isAdmin()) &&
+                    !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+
+    // Property Collection Rules
+    match /properties/{propertyId} {
+      // Anyone authenticated can read properties
+      allow read: if isAuthenticated();
+      
+      // Only admins and property managers can create
+      allow create: if isAdmin() || isPropertyManager();
+      
+      // Only admins and assigned property managers can update
+      allow update: if isAdmin() || 
+                    (isPropertyManager() && resource.data.managerId == request.auth.uid);
+      
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
+    // Unit Collection Rules
+    match /units/{unitId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() || isPropertyManager();
+      allow update: if isAdmin() || 
+                    (isPropertyManager() && exists(/databases/$(database)/documents/properties/$(resource.data.propertyId)));
+      allow delete: if isAdmin();
+    }
+
+    // Tenant Collection Rules
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated() && 
+                   (request.auth.uid == tenantId || isAdmin() || isPropertyManager());
+      allow create: if isAdmin() || isPropertyManager();
+      allow update: if isAdmin() || 
+                    isPropertyManager() || 
+                    (isTenant() && request.auth.uid == tenantId);
+      allow delete: if isAdmin();
+    }
+  }
+}
+```
+
+### 2. Data Validation Rules
+
+```javascript
+// Add to each collection's rules
+function isValidPropertyData() {
+  let data = request.resource.data;
+  return data.keys().hasAll(['name', 'address', 'type']) &&
+         data.name is string &&
+         data.address is string &&
+         data.type in ['apartment', 'house', 'commercial'];
+}
+
+function isValidUnitData() {
+  let data = request.resource.data;
+  return data.keys().hasAll(['number', 'propertyId', 'status']) &&
+         data.number is string &&
+         data.propertyId is string &&
+         data.status in ['available', 'occupied', 'maintenance'];
+}
+
+function isValidTenantData() {
+  let data = request.resource.data;
+  return data.keys().hasAll(['name', 'email', 'status']) &&
+         data.name is string &&
+         data.email is string &&
+         data.status in ['active', 'inactive'];
+}
+```
+
+### 3. Error Messages
+
+```javascript
+// Add custom error messages
+function throwError(message) {
+  return false;
+}
+
+// Usage in rules
+allow create: if isAuthenticated() || 
+              throwError('Authentication required');
+```
+
+## Implementation Steps
+
+1. Update Base Rules
+   - Deploy new security rules
+   - Test all access patterns
+   - Verify error messages
+
+2. Add Data Validation
+   - Implement validation functions
+   - Test with invalid data
+   - Verify error messages
+
+3. Test Access Patterns
+   - Test all CRUD operations
+   - Verify role-based access
+   - Check error handling
+
+## Dependencies
+
+- Firebase project configuration
+- User roles implementation
+- Authentication flow
+
+## Success Criteria
+
+1. Clear access patterns
+2. Proper error messages
+3. Role-based security
+4. Data validation
+5. No circular dependencies
+6. Proper handling of new users

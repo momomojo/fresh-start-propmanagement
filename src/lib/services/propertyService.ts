@@ -1,15 +1,35 @@
-import { propertyService as firebaseService } from '../firebase/services/propertyService';
-import { auth } from '../firebase/config';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { auth, db } from '../firebase/config';
 import type { Property } from '../../types';
 
 class PropertyService {
   async getProperties(): Promise<Property[]> {
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('User must be authenticated');
-    }
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User must be authenticated');
+      }
 
-    return firebaseService.getProperties();
+      const propertiesRef = collection(db, 'properties');
+      let q = propertiesRef;
+
+      // If user is a property manager, only fetch their properties
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
+      
+      if (userData?.role === 'property_manager') {
+        q = query(propertiesRef, where('manager_id', '==', user.uid));
+      }
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Property[];
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      throw error;
+    }
   }
 
   async getProperty(id: string): Promise<Property | null> {

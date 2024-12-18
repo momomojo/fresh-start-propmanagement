@@ -10,17 +10,25 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
     function isPropertyManager() {
       return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'property_manager';
+    }
+
+    function isPropertyManagerForProperty(propertyId) {
+      return isPropertyManager() && 
+        exists(/databases/$(database)/documents/properties/$(propertyId)) &&
+        get(/databases/$(database)/documents/properties/$(propertyId)).data.manager_id == request.auth.uid;
     }
     
     function isTenant() {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant';
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant';
     }
 
     function hasUserProfile() {
@@ -30,33 +38,39 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow create: if isAuthenticated();
+      allow read: if true;
+      allow create: if true;
       allow update: if request.auth.uid == userId || isAdmin();
       allow delete: if isAdmin();
     }
 
     // Properties collection
     match /properties/{propertyId} {
-      allow read: if hasUserProfile();
+      allow read: if isAuthenticated() && (isAdmin() || isPropertyManager() || isTenant());
       allow create: if isAdmin() || isPropertyManager();
-      allow update: if isAdmin() || isPropertyManager();
+      allow update: if isAdmin() || isPropertyManagerForProperty(propertyId);
       allow delete: if isAdmin();
     }
     
     // Units collection
     match /units/{unitId} {
-      allow read: if hasUserProfile();
+      allow read: if isAuthenticated();
       allow create: if isAdmin() || isPropertyManager();
-      allow update: if isAdmin() || isPropertyManager();
+      allow update: if isAdmin() || 
+        (isPropertyManager() && 
+          exists(/databases/$(database)/documents/properties/$(resource.data.property_id)) &&
+          get(/databases/$(database)/documents/properties/$(resource.data.property_id)).data.manager_id == request.auth.uid);
       allow delete: if isAdmin();
     }
     
     // Tenants collection
     match /tenants/{tenantId} {
-      allow read: if isAuthenticated();
+      allow read: if isAdmin() || isPropertyManager() || request.auth.uid == tenantId;
       allow create: if isAdmin() || isPropertyManager();
-      allow update: if isAdmin() || isPropertyManager() || request.auth.uid == tenantId;
+      allow update: if isAdmin() || 
+        (isPropertyManager() && resource.data.property_id != null && 
+          get(/databases/$(database)/documents/properties/$(resource.data.property_id)).data.manager_id == request.auth.uid) ||
+        request.auth.uid == tenantId;
       allow delete: if isAdmin();
     }
     

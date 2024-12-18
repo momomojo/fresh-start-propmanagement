@@ -88,6 +88,10 @@ const unitSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    setError: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.status = ActionStatus.FAILED;
+    },
   },
   extraReducers: (builder) => {
     // Fetch all units
@@ -138,6 +142,6 @@ const unitSlice = createSlice({
   },
 });
 
-export const { setSelectedUnit, clearError } = unitSlice.actions;
+export const { setSelectedUnit, clearError, setError } = unitSlice.actions;
 
 export default unitSlice.reducer;

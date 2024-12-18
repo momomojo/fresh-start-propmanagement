@@ -1,34 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UnitList } from '@/components/properties/UnitList';
-import { RootState, AppDispatch } from '@/lib/store';
-import { fetchProperties } from '@/lib/store/slices/propertySlice';
-import { fetchUnits } from '@/lib/store/slices/unitSlice';
+import { useAppDispatch, useAppSelector } from '@/lib/store';
+import { fetchProperties, setError as setPropertyError } from '@/lib/store/slices/propertySlice';
+import { fetchUnits, setError as setUnitError } from '@/lib/store/slices/unitSlice';
 import { Property, PropertyUnit, Tenant } from '@/types';
 
 const Properties = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const { properties, status, error } = useSelector((state: RootState) => state.properties);
-  const { units, status: unitsStatus, error: unitsError } = useSelector((state: RootState) => state.units);
+  const dispatch = useAppDispatch();
+  const { properties, status, error } = useAppSelector((state) => state.properties);
+  const { units, status: unitsStatus, error: unitsError } = useAppSelector((state) => state.units);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const isLoading = status === 'loading' || unitsStatus === 'loading';
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        await Promise.all([
-          dispatch(fetchProperties()).unwrap(),
-          dispatch(fetchUnits()).unwrap()
-        ]);
-      } catch (error) {
-        console.error('Error loading properties:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
+    dispatch(fetchProperties())
+      .unwrap()
+      .catch(error => {
+        console.error('Error fetching properties:', error);
+        dispatch(setPropertyError(error.message));
+      });
+    
+    dispatch(fetchUnits())
+      .unwrap()
+      .catch(error => {
+        console.error('Error fetching units:', error);
+        dispatch(setUnitError(error.message));
+      });
   }, [dispatch]);
 
   const handleAddProperty = () => {
@@ -46,18 +47,14 @@ const Properties = () => {
     console.log('Unit clicked:', unit);
   };
 
-  if (error || unitsError) {
-    return (
-      <div className="p-4 text-red-600 bg-red-50 rounded-md">
-        Error: {error || unitsError}
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingSpinner />;
   }
 
-  if (isLoading) {
+  if (error || unitsError) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="p-4 text-red-600 bg-red-50 dark:bg-red-900/50 rounded-md">
+        Error: {error || unitsError}
       </div>
     );
   }

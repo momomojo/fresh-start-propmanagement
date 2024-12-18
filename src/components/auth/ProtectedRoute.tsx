@@ -1,35 +1,23 @@
-import React from 'react';
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { RootState } from '../../lib/store';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import { RootState } from '@/lib/store';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRoles?: string[];
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children,
-  requiredRoles = []
-}) => {
-  const { user, token, loading } = useSelector((state: RootState) => state.auth);
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const location = useLocation();
+  const { user, status } = useSelector((state: RootState) => state.auth);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+  if (status === 'loading') {
+    return <LoadingSpinner />;
   }
 
-  if (!token || !user) {
+  if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

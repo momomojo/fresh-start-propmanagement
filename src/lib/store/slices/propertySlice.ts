@@ -91,6 +91,10 @@ const propertySlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    setError: (state, action: PayloadAction<string>) => {
+      state.error = action.payload;
+      state.status = ActionStatus.FAILED;
+    },
   },
   extraReducers: (builder) => {
     // Fetch properties
@@ -127,6 +131,6 @@ const propertySlice = createSlice({
   },
 });
 
-export const { setSelectedProperty, clearError } = propertySlice.actions;
+export const { setSelectedProperty, clearError, setError } = propertySlice.actions;
 
 export default propertySlice.reducer;

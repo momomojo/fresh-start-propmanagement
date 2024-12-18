@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
-import { setUser, setStatus, setError } from '../lib/store/slices/authSlice';
+import { setUser, setStatus, setError, setToken } from '../lib/store/slices/authSlice';
 import { RootState } from '../lib/store';
 import { ActionStatus } from '../lib/store/types';
 
@@ -21,7 +21,6 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submission started');
     dispatch(setError(null));
     dispatch(setStatus(ActionStatus.LOADING));
     setIsLoading(true);
@@ -34,20 +33,23 @@ const Login: React.FC = () => {
 
     try {
       const validated = loginSchema.parse(data);
-      console.log('Form validation passed');
-      const { user } = await authService.login(
-        validated.email,
-        validated.password
-      );
-      console.log('Login successful, dispatching user');
-      dispatch(setUser(user));
-      navigate('/');
+      try {
+        const { user, token } = await authService.login(
+          validated.email,
+          validated.password
+        );
+        dispatch(setUser(user));
+        dispatch(setToken(token));
+        navigate('/');
+      } catch (authError) {
+        dispatch(setError(authError instanceof Error ? authError.message : 'Authentication failed'));
+        dispatch(setStatus(ActionStatus.FAILED));
+        setIsLoading(false);
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       dispatch(setError(errorMessage));
       dispatch(setStatus(ActionStatus.FAILED));
-      setIsLoading(false);
-    } finally {
       setIsLoading(false);
     }
   };

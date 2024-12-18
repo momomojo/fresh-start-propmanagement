@@ -1,7 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
 const requiredEnvVars = [
   'VITE_FIREBASE_API_KEY',
@@ -33,12 +33,29 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
+
+// Initialize services
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-console.log('Firebase initialized successfully');
+export { auth, db, storage };
 
-export { app, auth, db, storage };
+// Enable persistence for Firestore
+import { enableIndexedDbPersistence } from 'firebase/firestore';
+
+export async function enablePersistence() {
+  if (typeof window !== 'undefined') {
+    try {
+      await enableIndexedDbPersistence(db);
+    } catch (err: any) {
+      if (err.code === 'failed-precondition') {
+        console.warn('Persistence failed: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Persistence not available in this browser');
+      }
+    }
+  }
+}

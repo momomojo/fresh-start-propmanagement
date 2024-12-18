@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
+import { setUser, setToken } from '../lib/store/slices/authSlice';
 import FormField from '../components/ui/Form/FormField';
 import Input from '../components/ui/Form/Input';
 import Select from '../components/ui/Form/Select';
@@ -42,13 +43,14 @@ const Signup: React.FC = () => {
     };
     try {
       const validated = signupSchema.parse(data);
-      const { user } = await authService.signup({
+      const { user, token } = await authService.signup({
         email: validated.email,
         password: validated.password,
         name: validated.name,
         role: validated.role,
       });
       dispatch(setUser(user));
+      dispatch(setToken(token));
       navigate('/');
     } catch (error) {
       if (error instanceof z.ZodError) {

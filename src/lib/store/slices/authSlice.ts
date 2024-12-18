@@ -26,7 +26,6 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
       state.status = ActionStatus.SUCCEEDED;
-      state.token = null; // Reset token when user changes
       state.error = null;
       state.isInitialized = true;
     },
@@ -38,7 +37,7 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.status = ActionStatus.FAILED;
     },
-    setToken: (state, action: PayloadAction<string>) => {
+    setToken: (state, action: PayloadAction<string | null>) => {
       state.token = action.payload;
     },
     logout: (state) => {

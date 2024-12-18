@@ -1,0 +1,214 @@
+# Authentication Service Implementation
+
+## Current Issues
+1. Duplicate Firebase initialization
+2. Missing error handling
+3. Inconsistent token management
+4. No retry logic for network failures
+5. Missing proper TypeScript types
+
+## Proposed Solution
+
+### 1. Authentication Service Structure
+
+```typescript
+// src/lib/services/auth/types.ts
+export interface AuthCredentials {
+  email: string;
+  password: string;
+}
+
+export interface SignupData extends AuthCredentials {
+  name: string;
+  role: UserRole;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+}
+
+export interface AuthError extends Error {
+  code: string;
+  message: string;
+}
+
+// src/lib/services/auth/errors.ts
+export const AUTH_ERRORS = {
+  'auth/invalid-credential': 'Invalid email or password',
+  'auth/user-disabled': 'This account has been disabled',
+  'auth/user-not-found': 'No account found with this email',
+  'auth/wrong-password': 'Invalid email or password',
+  'auth/too-many-requests': 'Too many failed attempts. Please try again later',
+  'auth/network-request-failed': 'Network error. Please check your connection.',
+} as const;
+
+// src/lib/services/auth/utils.ts
+export async function handleAuthError(error: unknown): Promise<never> {
+  if (error instanceof Error && 'code' in error) {
+    const code = error.code as keyof typeof AUTH_ERRORS;
+    throw new Error(AUTH_ERRORS[code] || 'An unexpected error occurred');
+  }
+  throw new Error('An unexpected error occurred');
+}
+
+// src/lib/services/auth/service.ts
+export class AuthService {
+  private auth: Auth;
+  private db: Firestore;
+  private maxRetries = 3;
+
+  constructor() {
+    this.auth = getFirebaseAuth();
+    this.db = getFirestore();
+  }
+
+  private async retry<T>(
+    operation: () => Promise<T>,
+    retries = this.maxRetries
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (retries > 0 && error instanceof Error && error.message.includes('network')) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.retry(operation, retries - 1);
+      }
+      throw error;
+    }
+  }
+
+  async login({ email, password }: AuthCredentials): Promise<AuthResponse> {
+    try {
+      const userCredential = await this.retry(() =>
+        signInWithEmailAndPassword(this.auth, email, password)
+      );
+
+      const token = await userCredential.user.getIdToken();
+      const userDoc = await this.getUserDocument(userCredential.user.uid);
+
+      if (!userDoc) {
+        throw new Error('User profile not found');
+      }
+
+      return {
+        token,
+        user: {
+          id: userCredential.user.uid,
+          email: userCredential.user.email!,
+          ...userDoc
+        }
+      };
+    } catch (error) {
+      throw await handleAuthError(error);
+    }
+  }
+
+  async signup(data: SignupData): Promise<AuthResponse> {
+    try {
+      const userCredential = await this.retry(() =>
+        createUserWithEmailAndPassword(this.auth, data.email, data.password)
+      );
+
+      const token = await userCredential.user.getIdToken();
+      const timestamp = new Date().toISOString();
+
+      const userData = {
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        created_at: timestamp,
+        updated_at: timestamp
+      };
+
+      await setDoc(doc(this.db, 'users', userCredential.user.uid), userData);
+
+      return {
+        token,
+        user: {
+          id: userCredential.user.uid,
+          ...userData
+        }
+      };
+    } catch (error) {
+      throw await handleAuthError(error);
+    }
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await this.auth.signOut();
+    } catch (error) {
+      throw await handleAuthError(error);
+    }
+  }
+
+  private async getUserDocument(uid: string): Promise<UserDocument | null> {
+    const docRef = doc(this.db, 'users', uid);
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? docSnap.data() as UserDocument : null;
+  }
+}
+
+export const authService = new AuthService();
+```
+
+### 2. Usage in Components
+
+```typescript
+// src/pages/Login.tsx
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  dispatch(setError(null));
+  dispatch(setStatus(ActionStatus.LOADING));
+
+  const formData = new FormData(e.currentTarget);
+  const data = {
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  };
+
+  try {
+    const { user, token } = await authService.login(data);
+    dispatch(setUser(user));
+    dispatch(setToken(token));
+    navigate('/');
+  } catch (error) {
+    dispatch(setError(error instanceof Error ? error.message : 'Login failed'));
+    dispatch(setStatus(ActionStatus.FAILED));
+  }
+};
+```
+
+## Implementation Steps
+
+1. Create Service Files
+   - Create auth service files
+   - Implement error handling
+   - Add retry logic
+
+2. Update Components
+   - Update login component
+   - Update signup component
+   - Add error handling
+
+3. Add Tests
+   - Test auth service
+   - Test error handling
+   - Test retry logic
+
+## Dependencies
+
+- Firebase configuration
+- Redux store
+- Error handling
+- Network utilities
+
+## Success Criteria
+
+1. No duplicate Firebase initialization
+2. Proper error handling
+3. Consistent token management
+4. Retry logic for network failures
+5. Type safety
+6. Comprehensive test coverage

@@ -1,0 +1,197 @@
+# Code Organization
+
+## Current Issues
+1. Unclear file organization
+2. Mixed responsibilities
+3. Inconsistent naming conventions
+4. Missing module boundaries
+
+## Proposed Solution
+
+### 1. Directory Structure
+
+```
+src/
+├── components/           # React components
+│   ├── auth/            # Authentication components
+│   ├── common/          # Shared components
+│   ├── features/        # Feature-specific components
+│   └── layout/          # Layout components
+├── hooks/               # Custom React hooks
+├── lib/                 # Core utilities
+│   ├── api/            # API utilities
+│   ├── firebase/       # Firebase configuration
+│   ├── monitoring/     # Error tracking
+│   └── utils/          # Utility functions
+├── providers/          # Context providers
+├── store/              # Redux store
+│   ├── slices/        # Redux slices
+│   └── selectors/     # Redux selectors
+├── styles/             # Global styles
+├── types/              # TypeScript types
+└── pages/              # Page components
+```
+
+### 2. File Naming Conventions
+
+```
+1. Components
+   - PascalCase.tsx
+   - PascalCase.test.tsx
+   - PascalCase.styles.ts
+
+2. Utilities
+   - camelCase.ts
+   - camelCase.test.ts
+
+3. Types
+   - camelCase.types.ts
+
+4. Constants
+   - SCREAMING_SNAKE_CASE
+
+5. Hooks
+   - useHookName.ts
+```
+
+### 3. Module Organization
+
+```typescript
+// 1. Component Structure
+// src/components/features/properties/PropertyCard.tsx
+import { type FC } from 'react';
+import { usePropertyActions } from './usePropertyActions';
+import { type PropertyCardProps } from './types';
+import { propertyStyles } from './styles';
+
+export const PropertyCard: FC<PropertyCardProps> = ({ property }) => {
+  const { handleEdit, handleDelete } = usePropertyActions(property);
+  
+  return (
+    <div className={propertyStyles.card}>
+      {/* Component JSX */}
+    </div>
+  );
+};
+
+// 2. Hook Organization
+// src/hooks/useAsync.ts
+export function useAsync<T>(
+  asyncFn: () => Promise<T>,
+  deps: any[] = []
+) {
+  // Hook implementation
+}
+
+// 3. Service Organization
+// src/lib/services/property/index.ts
+export * from './propertyService';
+export * from './types';
+export * from './utils';
+
+// 4. Store Organization
+// src/store/properties/slice.ts
+export const propertySlice = createSlice({/*...*/});
+
+// src/store/properties/selectors.ts
+export const selectProperties = (state: RootState) => state.properties;
+
+// src/store/properties/thunks.ts
+export const fetchProperties = createAsyncThunk(/*...*/);
+```
+
+### 4. Import Organization
+
+```typescript
+// 1. External imports
+import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+
+// 2. Internal absolute imports
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+
+// 3. Internal relative imports
+import { PropertyCard } from './PropertyCard';
+import { usePropertyActions } from './usePropertyActions';
+
+// 4. Type imports
+import type { Property } from '@/types';
+
+// 5. Style imports
+import './styles.css';
+```
+
+### 5. Component Organization
+
+```typescript
+// 1. Feature Components
+// src/components/features/properties/PropertyList.tsx
+export const PropertyList: FC<PropertyListProps> = ({ properties }) => {
+  return (
+    <div>
+      {properties.map(property => (
+        <PropertyCard key={property.id} property={property} />
+      ))}
+    </div>
+  );
+};
+
+// 2. Common Components
+// src/components/common/LoadingSpinner.tsx
+export const LoadingSpinner: FC<LoadingSpinnerProps> = ({ size }) => {
+  return (
+    <div className={`spinner spinner-${size}`}>
+      {/* Spinner implementation */}
+    </div>
+  );
+};
+
+// 3. Layout Components
+// src/components/layout/Sidebar.tsx
+export const Sidebar: FC = () => {
+  return (
+    <aside>
+      {/* Sidebar implementation */}
+    </aside>
+  );
+};
+```
+
+## Implementation Steps
+
+1. Reorganize Directory Structure
+   - Create new directories
+   - Move files to appropriate locations
+   - Update imports
+
+2. Update File Names
+   - Rename files to follow conventions
+   - Update import statements
+   - Fix broken references
+
+3. Refactor Components
+   - Split large components
+   - Extract common logic
+   - Create feature modules
+
+4. Add Documentation
+   - Add README files
+   - Document conventions
+   - Add component documentation
+
+## Dependencies
+
+- Project structure
+- Build configuration
+- Import aliases
+- TypeScript configuration
+
+## Success Criteria
+
+1. Clear file organization
+2. Consistent naming
+3. Modular code
+4. Easy navigation
+5. Clear responsibilities
+6. Maintainable structure
