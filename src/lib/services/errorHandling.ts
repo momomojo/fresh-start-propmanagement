@@ -28,7 +28,6 @@ export const AUTH_ERROR_MESSAGES = {
   'invalid-argument': 'Invalid query parameters',
   'resource-exhausted': 'Too many requests. Please try again later',
   'auth/popup-blocked': 'Please enable popups for this site to use social login',
-  'auth/popup-closed-by-user': 'Login window was closed. Please try again.',
   'auth/account-exists-with-different-credential': 'An account already exists with this email. Please try a different login method.',
   'failed-precondition': 'Operation cannot be completed in current state',
   'out-of-range': 'Operation parameters out of valid range',

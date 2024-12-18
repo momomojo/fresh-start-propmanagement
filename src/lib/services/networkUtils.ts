@@ -1,28 +1,30 @@
-import { auth } from '@/lib/firebase/config';
+import { auth } from '../firebase/config';
 
-export async function checkNetworkConnection(): Promise<boolean> {
+export const checkConnection = async () => {
   try {
-    const response = await fetch('https://www.google.com/favicon.ico', {
-      mode: 'no-cors',
-    });
-    return response.type === 'opaque' || response.status === 0;
-  } catch {
+    // Try to refresh the auth token as a connectivity test
+    const user = auth.currentUser;
+    if (user) {
+      await user.getIdToken(true);
+    }
+    return true;
+  } catch (error) {
     return false;
   }
-}
+};
 
-export async function waitForNetwork(timeout = 30000): Promise<boolean> {
+export const waitForConnection = async (timeout = 30000): Promise<boolean> => {
   const start = Date.now();
   
   while (Date.now() - start < timeout) {
-    if (await checkNetworkConnection()) {
+    if (await checkConnection()) {
       return true;
     }
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
   return false;
-}
+};
 
 export async function retryOperation<T>(
   operation: () => Promise<T>,
@@ -34,7 +36,7 @@ export async function retryOperation<T>(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 1) {
-        const isOnline = await checkNetworkConnection();
+        const isOnline = await checkConnection();
         if (!isOnline) {
           throw new Error('No network connection');
         }

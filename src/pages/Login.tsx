@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { Building2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '@/lib/services/authService';
 import { socialAuthService } from '@/lib/services/socialAuthService';
@@ -19,6 +19,7 @@ export default function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -53,15 +54,15 @@ export default function Login() {
   const handleGoogleSignIn = async () => {
     try {
       setError(null);
-      setIsLoading(true);
-      const user = await socialAuthService.signInWithGoogle();
-      if (user) {
-        navigate('/');
-      }
+      setIsGoogleLoading(true);
+      const { user, token } = await socialAuthService.signInWithGoogle();
+      dispatch(setUser(user));
+      dispatch(setToken(token));
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
     } finally {
-      setIsLoading(false);
+      setIsGoogleLoading(false);
     }
   };
 
@@ -153,9 +154,16 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white relative"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                'Sign in'
+              )}
             </Button>
 
             <div className="relative">
@@ -172,18 +180,24 @@ export default function Login() {
             <Button
               type="button"
               variant="outline"
-              onClick={handleGoogleSignIn}
-              disabled={isLoading}
+              onClick={() => !isGoogleLoading && handleGoogleSignIn()}
+              disabled={isLoading || isGoogleLoading}
               className="w-full border-[#434f74] text-gray-300 hover:bg-[#2e3856]"
             >
-              <svg
-                className="w-5 h-5 mr-2"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
-              </svg>
-              Sign in with Google
+              <div className="flex items-center justify-center w-full">
+                {isGoogleLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z" />
+                  </svg>
+                )}
+                {isGoogleLoading ? 'Signing in...' : 'Sign in with Google'}
+              </div>
             </Button>
           </div>
         </form>

@@ -4,6 +4,10 @@ export interface User {
   email: string;
   role: 'admin' | 'property_manager' | 'tenant';
   password_hash: string;
+  provider?: 'password' | 'google';
+  google_id?: string;
+  google_access_token?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }

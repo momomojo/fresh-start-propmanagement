@@ -27,13 +27,21 @@ validateEnvVars();
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: window.location.hostname, // Use the app's domain as authDomain
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  // Add OAuth config
+  clientId: import.meta.env.VITE_FIREBASE_OAUTH_CLIENT_ID,
+  clientSecret: import.meta.env.VITE_FIREBASE_OAUTH_CLIENT_SECRET
 };
+
+// Fallback to default auth domain in development
+if (import.meta.env.DEV) {
+  firebaseConfig.authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+}
 
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);

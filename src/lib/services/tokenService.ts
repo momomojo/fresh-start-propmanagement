@@ -1,17 +1,44 @@
 import { auth } from '@/lib/firebase/config';
 import { User as FirebaseUser } from 'firebase/auth';
 
-const TOKEN_KEY = 'auth_token';
-const TOKEN_EXPIRY_KEY = 'token_expiry';
-const REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes in milliseconds
+const TOKEN_KEY = 'auth_token_secure';
+const TOKEN_EXPIRY_KEY = 'token_expiry_secure';
+const REFRESH_THRESHOLD = 5 * 60 * 1000; // 5 minutes before expiry
+
+// Helper functions outside the service object
+function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error reading token:', error);
+    return null;
+  }
+}
+
+function getStoredExpiry(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_EXPIRY_KEY);
+  } catch (error) {
+    console.error('Error reading token expiry:', error);
+    return null;
+  }
+}
+
+function storeToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function storeExpiry(expiry: number): void {
+  localStorage.setItem(TOKEN_EXPIRY_KEY, expiry.toString());
+}
 
 export const tokenService = {
   async getToken(): Promise<string | null> {
     const user = auth.currentUser;
     if (!user) return null;
 
-    const existingToken = localStorage.getItem(TOKEN_KEY);
-    const tokenExpiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
+    const existingToken = getStoredToken();
+    const tokenExpiry = getStoredExpiry();
 
     if (existingToken && tokenExpiry) {
       const expiryTime = parseInt(tokenExpiry);
@@ -28,8 +55,8 @@ export const tokenService = {
     const decodedToken = await user.getIdTokenResult();
     const expiryTime = new Date(decodedToken.expirationTime).getTime();
 
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+    storeToken(token);
+    storeExpiry(expiryTime);
 
     return token;
   },

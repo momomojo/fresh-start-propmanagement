@@ -14,6 +14,11 @@ export const authService = {
     try {
       // Get IP address for security tracking
       const ipAddress = await getClientIp();
+      const deviceInfo = {
+        browser: navigator.userAgent,
+        os: navigator.platform,
+        timestamp: new Date().toISOString()
+      };
       
       try {
         await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
@@ -95,10 +100,8 @@ export const authService = {
       const ipAddress = await getClientIp();
       await securityService.trackLoginAttempt(false, ipAddress, {
         timestamp: new Date().toISOString(),
-        deviceInfo: {
-          browser: navigator.userAgent,
-          os: navigator.platform
-        }
+        deviceInfo,
+        provider: 'password'
       });
       
       console.error('Login error:', error);

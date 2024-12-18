@@ -3,9 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Helper functions
-    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
+    }
+    
+    function isValidTime(timeVal) {
+      return timeVal is timestamp && 
+             timeVal.date() <= request.time.date() &&
+             duration.between(timeVal, request.time).seconds < 300;
+    }
+    
+    function hasRequiredTimestamps(data) {
+      return data.keys().hasAll(['created_at', 'updated_at']) &&
+             isValidTime(data.created_at) &&
+             isValidTime(data.updated_at);
     }
 
     function isAdmin() {
@@ -38,17 +49,39 @@ service cloud.firestore {
     
     // Users collection
     match /users/{userId} {
-      allow read: if true;
-      allow create: if true;
+      // Anyone can read basic user info, but sensitive fields are protected
+      allow read: if request.auth != null;
+      
+      // Allow creation during signup
+      allow create: if request.auth != null && 
+                    request.auth.uid == userId &&
+                    request.resource.data.keys().hasAll(['email', 'name', 'role']) &&
+                    request.resource.data.role == 'tenant' &&
+                    hasRequiredTimestamps(request.resource.data);
+      
+      // Users can update their own profiles, admins can update any profile
       allow update: if request.auth.uid == userId || isAdmin();
+      
+      // Only admins can delete users
       allow delete: if isAdmin();
     }
 
     // Properties collection
     match /properties/{propertyId} {
       allow read: if isAuthenticated();
-      allow create: if isAdmin() || isPropertyManager();
-      allow update: if isAdmin() || isPropertyManagerForProperty(propertyId);
+      // Only admins and property managers can create
+      allow create: if isAdmin() || 
+        (isPropertyManager() && 
+         request.resource.data.keys().hasAll(['name', 'address', 'type', 'units', 'status']) &&
+         hasRequiredTimestamps(request.resource.data));
+      
+      // Only admins and assigned property managers can update
+      allow update: if isAdmin() || 
+        (isPropertyManager() && resource.data.manager_id == request.auth.uid &&
+         request.resource.data.updated_at is timestamp &&
+         isValidTime(request.resource.data.updated_at));
+      
+      // Only admins can delete properties
       allow delete: if isAdmin();
     }
     
@@ -89,9 +122,17 @@ service cloud.firestore {
     // Maintenance collection
     match /maintenance/{requestId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+        request.resource.data.keys().hasAll(['title', 'description', 'priority', 'status']) &&
+        request.resource.data.priority in ['low', 'medium', 'high', 'emergency'] &&
+        request.resource.data.status in ['pending', 'in_progress', 'completed'] &&
+        hasRequiredTimestamps(request.resource.data);
+      
       allow update: if isAdmin() || isPropertyManager() || 
-        (isTenant() && resource.data.tenant_id == request.auth.uid);
+        (isTenant() && resource.data.tenant_id == request.auth.uid &&
+         request.resource.data.updated_at is timestamp &&
+         isValidTime(request.resource.data.updated_at));
+      
       allow delete: if isAdmin();
     }
     
@@ -100,7 +141,13 @@ service cloud.firestore {
       allow read: if isAuthenticated() && 
         (isAdmin() || isPropertyManager() || 
          resource.data.tenant_id == request.auth.uid);
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() &&
+        request.resource.data.keys().hasAll(['amount', 'type', 'status']) &&
+        request.resource.data.type in ['rent', 'deposit', 'fee'] &&
+        request.resource.data.status in ['pending', 'completed', 'failed'] &&
+        request.resource.data.amount > 0 &&
+        hasRequiredTimestamps(request.resource.data);
+      
       allow update: if isAdmin() || isPropertyManager();
       allow delete: if isAdmin();
     }

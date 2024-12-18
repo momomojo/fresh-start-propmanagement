@@ -1,5 +1,4 @@
-import { getDoc } from 'firebase/firestore';
-import { doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/config';
 import { handleFirebaseError } from './errorHandling';
 import { retryOperation } from './networkUtils';
@@ -17,6 +16,7 @@ interface LoginHistoryItem {
   success: boolean;
   ipAddress: string;
   deviceInfo: DeviceInfo;
+  provider?: string;
 }
 
 export const securityService = {
@@ -60,66 +60,107 @@ export const securityService = {
       );
       
       return {
-        loginNotifications: userDoc.data()?.login_notifications || false
+        loginNotifications: userDoc.data()?.login_notifications || false,
+        suspiciousLoginAlerts: userDoc.data()?.suspicious_login_alerts || false,
+        twoFactorEnabled: userDoc.data()?.two_factor_enabled || false
       };
     } catch (error) {
       throw handleFirebaseError(error);
     }
   },
 
-  async trackLoginAttempt(success: boolean, ipAddress: string) {
+  async trackLoginAttempt(
+    success: boolean,
+    ipAddress: string,
+    context?: {
+      timestamp?: string;
+      deviceInfo?: {
+        browser: string;
+        os: string;
+      };
+      provider?: string;
+    }
+  ): Promise<void> {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
 
       const deviceInfo: DeviceInfo = {
         deviceId: crypto.randomUUID(),
-        browser: navigator.userAgent,
-        os: navigator.platform,
-        lastLogin: new Date().toISOString(),
+        browser: context?.deviceInfo?.browser || navigator.userAgent,
+        os: context?.deviceInfo?.os || navigator.platform,
+        lastLogin: context?.timestamp || new Date().toISOString(),
         ipAddress
       };
 
-      // Get existing login history
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      const loginHistory = userDoc.data()?.login_history || [];
+      const loginHistoryItem: LoginHistoryItem = {
+        timestamp: context?.timestamp || new Date().toISOString(),
+        success,
+        ipAddress,
+        deviceInfo,
+        provider: context?.provider
+      };
 
-      // Add new login attempt
-      await updateDoc(doc(db, 'users', user.uid), {
-        login_history: [...loginHistory, {
-          timestamp: new Date().toISOString(),
-          success,
-          ipAddress,
-          deviceInfo
-        }].slice(-50) // Keep only last 50 entries
-      });
+      await retryOperation(() =>
+        updateDoc(doc(db, 'users', user.uid), {
+          devices: arrayUnion(deviceInfo),
+          login_history: arrayUnion(loginHistoryItem)
+        })
+      );
+
+      // If it's a suspicious login, trigger alerts
+      if (!success && user.email) {
+        const settings = await this.getSecuritySettings();
+        if (settings.suspiciousLoginAlerts) {
+          // TODO: Implement suspicious login notification
+          console.warn('Suspicious login detected:', loginHistoryItem);
+        }
+      }
+    } catch (error) {
+      console.error('Error tracking login attempt:', error);
+      // Don't throw here to prevent blocking the auth flow
+    }
+  },
+
+  async removeDevice(deviceId: string): Promise<void> {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No authenticated user');
+
+      const userDoc = await retryOperation(() =>
+        getDoc(doc(db, 'users', user.uid))
+      );
+      
+      const devices = userDoc.data()?.devices || [];
+      const deviceToRemove = devices.find((d: DeviceInfo) => d.deviceId === deviceId);
+
+      if (deviceToRemove) {
+        await retryOperation(() =>
+          updateDoc(doc(db, 'users', user.uid), {
+            devices: arrayRemove(deviceToRemove)
+          })
+        );
+      }
     } catch (error) {
       throw handleFirebaseError(error);
     }
   },
 
-  async removeDevice(deviceId: string) {
+  async updateSecuritySettings(settings: {
+    loginNotifications?: boolean;
+    suspiciousLoginAlerts?: boolean;
+    twoFactorEnabled?: boolean;
+  }): Promise<void> {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
 
-      await updateDoc(doc(db, 'users', user.uid), {
-        devices: devices.filter((d: DeviceInfo) => d.deviceId !== deviceId)
-      });
-    } catch (error) {
-      throw handleFirebaseError(error);
-    }
-  },
-
-  async enableLoginNotifications(enabled: boolean) {
-    try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('No authenticated user');
-
-      await updateDoc(doc(db, 'users', user.uid), {
-        login_notifications: enabled,
-        updated_at: new Date().toISOString()
-      });
+      await retryOperation(() =>
+        updateDoc(doc(db, 'users', user.uid), {
+          ...settings,
+          updated_at: new Date().toISOString()
+        })
+      );
     } catch (error) {
       throw handleFirebaseError(error);
     }

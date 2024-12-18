@@ -1,7 +1,7 @@
 // src/lib/store/slices/authSlice.ts
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ActionStatus } from '../types';
-import type { User } from '../../types';
+import type { User } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -19,8 +19,7 @@ const initialState: AuthState = {
   token: null,
   error: null,
   isInitialized: false,
-  isAuthenticated: false,
-  persistedAuth: null
+  isAuthenticated: false
 };
 
 const authSlice = createSlice({
@@ -47,15 +46,19 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.status = ActionStatus.FAILED;
     },
-    setToken: (state, action: PayloadAction<string | null>) => {
+    setToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
+      // Store token in localStorage for persistence
+      localStorage.setItem('auth_token', action.payload);
     },
     restoreAuth: (state) => {
       const persisted = localStorage.getItem('auth_state');
+      const token = localStorage.getItem('auth_token');
       if (persisted) {
         const { user, isAuthenticated } = JSON.parse(persisted);
         state.user = user;
         state.isAuthenticated = isAuthenticated;
+        state.token = token;
         state.status = ActionStatus.SUCCEEDED;
       }
     },
@@ -66,7 +69,9 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       state.isInitialized = true;
+      // Clear stored auth data
       localStorage.removeItem('auth_state');
+      localStorage.removeItem('auth_token');
     },
   },
 });
