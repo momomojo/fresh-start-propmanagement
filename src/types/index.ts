@@ -86,3 +86,9 @@ export interface Document {
   created_at: string;
   updated_at: string;
 }
+
+export interface AuthContextType {
+  isInitialized: boolean;
+  isAuthenticated: boolean;
+  user: User | null;
+}

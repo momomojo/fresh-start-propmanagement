@@ -7,7 +7,7 @@ import { addTenant } from '../../lib/store/slices/tenantSlice';
 import { RootState } from '../../lib/store';
 import FormField from '../ui/Form/FormField';
 import Input from '../ui/Form/Input';
-import Select from '../ui/Form/Select';
+import Select from '@/components/ui/Form/Select';
 
 interface AddTenantModalProps {
   isOpen: boolean;

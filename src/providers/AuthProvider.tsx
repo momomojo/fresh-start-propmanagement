@@ -9,23 +9,17 @@ import { setUser, setStatus, setError } from '@/lib/store/slices/authSlice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionStatus } from '@/lib/store/types';
 import { RootState } from '@/lib/store';
-import type { User } from '@/types';
+import type { User, AuthContextType } from '@/types';
 import { handleFirebaseError } from '@/lib/services/errorHandling';
 import { retryOperation } from '@/lib/services/networkUtils';
 
-interface AuthContextType {
-  isInitialized: boolean;
-  isAuthenticated: boolean;
-  user: User | null;
-}
-
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   isInitialized: false,
   isAuthenticated: false,
   user: null
 });
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -100,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [dispatch, auth, db]);
+  }, [dispatch]);
 
   if (!isInitialized) {
     return (
@@ -123,4 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+export { AuthProvider, useAuth };

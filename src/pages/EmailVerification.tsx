@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Building2, Mail } from 'lucide-react';
 import { authService } from '@/lib/services/authService';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/providers/AuthProvider';
 
 const EmailVerification = () => {
   const navigate = useNavigate();

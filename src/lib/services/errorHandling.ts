@@ -7,6 +7,8 @@ export interface AppError extends Error {
 }
 
 export const AUTH_ERROR_MESSAGES = {
+  'auth/session-expired': 'Your session has expired. Please sign in again.',
+  'auth/timeout': 'Session timed out due to inactivity. Please sign in again.',
   'auth/unauthorized-continue-uri': 'Invalid verification URL configuration',
   'auth/unauthorized-domain': 'This domain is not authorized for authentication operations',
   'auth/requires-recent-login': 'Please log in again to continue',

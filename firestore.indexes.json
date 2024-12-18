@@ -1,6 +1,22 @@
 {
   "indexes": [
     {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "role", "order": "ASCENDING" },
+        { "fieldPath": "name", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "provider", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "properties",
       "queryScope": "COLLECTION",
       "fields": [
@@ -71,14 +87,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "property_id", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "units",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "property_id", "order": "ASCENDING" },
         { "fieldPath": "rent_amount", "order": "ASCENDING" }
       ]
     },
@@ -89,14 +97,6 @@
         { "fieldPath": "tenant_id", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "users",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "role", "order": "ASCENDING" },
-        { "fieldPath": "name", "order": "ASCENDING" }
       ]
     }
   ],

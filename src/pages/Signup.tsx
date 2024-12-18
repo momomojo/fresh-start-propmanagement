@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Building2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { z } from 'zod';
 import { authService } from '@/lib/services/authService';
 import { socialAuthService } from '@/lib/services/socialAuthService';

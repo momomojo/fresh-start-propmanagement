@@ -7,16 +7,16 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isValidTime(timeVal) {
+    function isValidTimestamp(timeVal) {
       return timeVal is timestamp && 
-             timeVal.date() <= request.time.date() &&
-             duration.between(timeVal, request.time).seconds < 300;
+             timeVal.toMillis() <= request.time.toMillis() &&
+             request.time.toMillis() - timeVal.toMillis() < 300000;
     }
     
     function hasRequiredTimestamps(data) {
       return data.keys().hasAll(['created_at', 'updated_at']) &&
-             isValidTime(data.created_at) &&
-             isValidTime(data.updated_at);
+             isValidTimestamp(data.created_at) &&
+             isValidTimestamp(data.updated_at);
     }
 
     function isAdmin() {
@@ -30,37 +30,29 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'property_manager';
     }
-
-    function isPropertyManagerForProperty(propertyId) {
-      return isPropertyManager() && 
-        exists(/databases/$(database)/documents/properties/$(propertyId)) &&
-        get(/databases/$(database)/documents/properties/$(propertyId)).data.manager_id == request.auth.uid;
-    }
     
     function isTenant() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant';
-    }
-
-    function hasUserProfile() {
       return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'tenant';
     }
     
     // Users collection
     match /users/{userId} {
       // Anyone can read basic user info, but sensitive fields are protected
-      allow read: if request.auth != null;
+      allow read: if isAuthenticated();
       
       // Allow creation during signup
-      allow create: if request.auth != null && 
+      allow create: if isAuthenticated() && 
                     request.auth.uid == userId &&
                     request.resource.data.keys().hasAll(['email', 'name', 'role']) &&
                     request.resource.data.role == 'tenant' &&
                     hasRequiredTimestamps(request.resource.data);
       
       // Users can update their own profiles, admins can update any profile
-      allow update: if request.auth.uid == userId || isAdmin();
+      allow update: if isAuthenticated() &&
+                    (request.auth.uid == userId || isAdmin()) &&
+                    request.resource.data.updated_at is timestamp;
       
       // Only admins can delete users
       allow delete: if isAdmin();
@@ -69,6 +61,7 @@ service cloud.firestore {
     // Properties collection
     match /properties/{propertyId} {
       allow read: if isAuthenticated();
+      
       // Only admins and property managers can create
       allow create: if isAdmin() || 
         (isPropertyManager() && 
@@ -77,9 +70,10 @@ service cloud.firestore {
       
       // Only admins and assigned property managers can update
       allow update: if isAdmin() || 
-        (isPropertyManager() && resource.data.manager_id == request.auth.uid &&
+        (isPropertyManager() && 
+         resource.data.manager_id == request.auth.uid &&
          request.resource.data.updated_at is timestamp &&
-         isValidTime(request.resource.data.updated_at));
+         isValidTimestamp(request.resource.data.updated_at));
       
       // Only admins can delete properties
       allow delete: if isAdmin();
@@ -87,27 +81,28 @@ service cloud.firestore {
     
     // Units collection
     match /units/{unitId} {
-      allow read: if isAuthenticated() && (
-        isAdmin() || 
-        isPropertyManager() || 
-        (isTenant() && exists(/databases/$(database)/documents/properties/$(resource.data.property_id)))
-      );
+      allow read: if isAuthenticated();
+      
       allow create: if isAdmin() || isPropertyManager();
+      
       allow update: if isAdmin() || 
         (isPropertyManager() && 
-          exists(/databases/$(database)/documents/properties/$(resource.data.property_id)) &&
-          get(/databases/$(database)/documents/properties/$(resource.data.property_id)).data.manager_id == request.auth.uid);
+         exists(/databases/$(database)/documents/properties/$(resource.data.property_id)));
+      
       allow delete: if isAdmin();
     }
     
     // Tenants collection
     match /tenants/{tenantId} {
-      allow read: if isAdmin() || isPropertyManager() || request.auth.uid == tenantId;
+      allow read: if isAuthenticated() &&
+                   (isAdmin() || isPropertyManager() || request.auth.uid == tenantId);
+      
       allow create: if isAdmin() || isPropertyManager();
+      
       allow update: if isAdmin() || 
-        (isPropertyManager() && resource.data.property_id != null && 
-          get(/databases/$(database)/documents/properties/$(resource.data.property_id)).data.manager_id == request.auth.uid) ||
+        (isPropertyManager() && resource.data.property_id != null) ||
         request.auth.uid == tenantId;
+      
       allow delete: if isAdmin();
     }
     
@@ -122,6 +117,7 @@ service cloud.firestore {
     // Maintenance collection
     match /maintenance/{requestId} {
       allow read: if isAuthenticated();
+      
       allow create: if isAuthenticated() && 
         request.resource.data.keys().hasAll(['title', 'description', 'priority', 'status']) &&
         request.resource.data.priority in ['low', 'medium', 'high', 'emergency'] &&
@@ -129,9 +125,10 @@ service cloud.firestore {
         hasRequiredTimestamps(request.resource.data);
       
       allow update: if isAdmin() || isPropertyManager() || 
-        (isTenant() && resource.data.tenant_id == request.auth.uid &&
+        (isTenant() && 
+         resource.data.tenant_id == request.auth.uid &&
          request.resource.data.updated_at is timestamp &&
-         isValidTime(request.resource.data.updated_at));
+         isValidTimestamp(request.resource.data.updated_at));
       
       allow delete: if isAdmin();
     }
@@ -141,6 +138,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && 
         (isAdmin() || isPropertyManager() || 
          resource.data.tenant_id == request.auth.uid);
+      
       allow create: if isAuthenticated() &&
         request.resource.data.keys().hasAll(['amount', 'type', 'status']) &&
         request.resource.data.type in ['rent', 'deposit', 'fee'] &&
@@ -157,6 +155,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && 
         (isAdmin() || isPropertyManager() || 
          resource.data.tenant_id == request.auth.uid);
+      
       allow create: if isAdmin() || isPropertyManager();
       allow update: if isAdmin() || isPropertyManager();
       allow delete: if isAdmin();

@@ -8,7 +8,7 @@ import TablePagination from '../components/ui/Table/TablePagination';
 import AddTenantModal from '../components/tenants/AddTenantModal';
 import TenantDetailsModal from '../components/tenants/TenantDetailsModal';
 import Input from '../components/ui/Form/Input';
-import Select from '../components/ui/Form/Select';
+import Select from '@/components/ui/Form/Select';
 import type { RootState } from '../lib/store';
 import { setTenants, setLoading, setFilters } from '../lib/store/slices/tenantSlice';
 import { tenantService } from '../lib/services/tenantService';

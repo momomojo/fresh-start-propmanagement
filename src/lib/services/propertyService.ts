@@ -90,20 +90,28 @@ class PropertyService {
   async updateProperty(id: string, data: Partial<Property>): Promise<Property> {
     try {
       const timestamp = new Date().toISOString();
-      const docRef = doc(db, 'properties', id);
-      await updateDoc(docRef, {
-        ...data,
-        updated_at: timestamp
-      });
+      const propertyRef = doc(db, 'properties', id);
+      const propertyDoc = await getDoc(propertyRef);
       
-      const updatedDoc = await getDoc(docRef);
-      if (!updatedDoc.exists()) {
+      if (!propertyDoc.exists()) {
         throw new Error('Property not found');
       }
       
+      // Merge existing data with updates
+      const updatedData = {
+        ...propertyDoc.data(),
+        ...data,
+        updated_at: timestamp
+      };
+      
+      const docRef = doc(db, 'properties', id);
+      await updateDoc(docRef, {
+        ...updatedData
+      });
+      
       return {
-        id: updatedDoc.id,
-        ...updatedDoc.data()
+        id: propertyDoc.id,
+        ...updatedData
       } as Property;
     } catch (error) {
       console.error('Error updating property:', error);
@@ -111,13 +119,24 @@ class PropertyService {
     }
   }
 
-  async deleteProperty(id: string): Promise<boolean> {
+  async deleteProperty(id: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, 'properties', id));
-      return true;
+      // First delete all units associated with this property
+      const unitsRef = collection(db, 'units');
+      const unitsQuery = query(unitsRef, where('property_id', '==', id));
+      const unitsSnapshot = await getDocs(unitsQuery);
+      
+      const unitDeletions = unitsSnapshot.docs.map(doc => 
+        deleteDoc(doc.ref)
+      );
+      await Promise.all(unitDeletions);
+      
+      // Then delete the property
+      const propertyRef = doc(db, 'properties', id);
+      await deleteDoc(propertyRef);
     } catch (error) {
       console.error('Error deleting property:', error);
-      return false;
+      throw error;
     }
   }
 }

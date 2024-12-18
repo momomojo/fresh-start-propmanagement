@@ -63,7 +63,8 @@ export const updateProperty = createAsyncThunk(
   'properties/updateProperty',
   async ({ id, data }: { id: string; data: Partial<Property> }, { rejectWithValue }) => {
     try {
-      return await propertyService.updateProperty(id, data);
+      const updatedProperty = await propertyService.updateProperty(id, data);
+      return updatedProperty;
     } catch (error) {
       return rejectWithValue((error as Error).message);
     }
@@ -121,8 +122,17 @@ const propertySlice = createSlice({
     builder.addCase(updateProperty.fulfilled, (state, action) => {
       const index = state.properties.findIndex(p => p.id === action.payload.id);
       if (index !== -1) {
-        state.properties[index] = action.payload;
+        state.properties[index] = {
+          ...state.properties[index],
+          ...action.payload
+        };
+        state.status = ActionStatus.SUCCEEDED;
+        state.error = null;
       }
+    });
+    builder.addCase(updateProperty.rejected, (state, action) => {
+      state.status = ActionStatus.FAILED;
+      state.error = action.payload as string;
     });
 
     // Delete property

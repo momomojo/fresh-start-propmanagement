@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import { authService } from '../../lib/services/authService';
 import { 
   Home,

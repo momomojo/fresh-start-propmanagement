@@ -1,5 +1,7 @@
 import { auth } from '@/lib/firebase/config';
 import { tokenService } from './tokenService';
+import { logout } from '@/lib/store/slices/authSlice';
+import { store } from '@/lib/store';
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
 const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
@@ -70,11 +72,16 @@ class SessionService {
   private async handleInactivity(): Promise<void> {
     try {
       if (auth.currentUser) {
+        // Clear all auth state before redirect
         await auth.signOut();
+        store.dispatch(logout());
       }
       tokenService.clearToken();
       localStorage.removeItem('auth_state');
       localStorage.removeItem(ACTIVITY_KEY);
+      
+      // Use replaceState to prevent back navigation to expired session
+      window.history.replaceState(null, '', '/login?timeout=true');
       window.location.href = '/login?timeout=true';
     } catch (error) {
       console.error('Error handling inactivity:', error);

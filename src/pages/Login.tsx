@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { Building2, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { z } from 'zod';
 import { authService } from '@/lib/services/authService';
 import { socialAuthService } from '@/lib/services/socialAuthService';
@@ -18,10 +19,18 @@ const loginSchema = z.object({
 export default function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
+
+  useEffect(() => {
+    // Handle timeout parameter
+    if (searchParams.get('timeout') === 'true') {
+      setError('Your session has expired. Please sign in again.');
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,7 +54,10 @@ export default function Login() {
       dispatch(setToken(token));
       navigate('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to sign in');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sign in';
+      setError(errorMessage);
+      // Log error for monitoring
+      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
