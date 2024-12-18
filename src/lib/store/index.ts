@@ -1,6 +1,7 @@
 import { configureStore, ThunkAction, Action, Middleware } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
-import { errorMiddleware } from './middleware/errorMiddleware';
+import { firestoreMiddleware } from './middleware/firestoreMiddleware';
+import { db, auth, storage } from '../firebase/config';
 import authReducer from './slices/authSlice';
 import propertyReducer from './slices/propertySlice';
 import uiReducer from './slices/uiSlice';
@@ -31,7 +32,10 @@ const storeConfig = {
   middleware: (getDefaultMiddleware: any) =>
     getDefaultMiddleware({
       serializableCheck: false,
-    }).concat(errorMiddleware as Middleware),
+      thunk: {
+        extraArgument: { db, auth, storage }
+      }
+    }).concat(firestoreMiddleware as Middleware),
 };
 
 // Create and type the store
@@ -49,6 +53,7 @@ export type RootState = {
   ui: ReturnType<typeof uiReducer>;
   tenants: ReturnType<typeof tenantReducer>;
   units: ReturnType<typeof unitReducer>;
+  maintenance: ReturnType<typeof maintenanceReducer>;
 };
 
 // Define reusable type for thunks

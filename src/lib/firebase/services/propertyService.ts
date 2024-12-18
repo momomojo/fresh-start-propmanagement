@@ -10,26 +10,53 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config';
 import { COLLECTIONS } from '../collections';
+import { BaseFirestoreService } from './baseService';
+import { auth } from '../config';
 import type { Property } from '../../../types';
 
-class PropertyService {
+class PropertyService extends BaseFirestoreService {
+  constructor() {
+    super(COLLECTIONS.PROPERTIES);
+  }
+
   async getProperties(): Promise<Property[]> {
-    const propertiesRef = collection(db, COLLECTIONS.PROPERTIES);
-    const snapshot = await getDocs(propertiesRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Property));
+    try {
+      // Verify authentication
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User must be authenticated');
+      }
+
+      // Get user profile to check role
+      const userDoc = await this.getUserProfile(user.uid);
+      if (!userDoc) {
+        throw new Error('User profile not found');
+      }
+
+      return await this.list<Property>();
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      throw error;
+    }
+  }
+
+  private async getUserProfile(userId: string) {
+    const userDoc = await this.get(userId);
+    return userDoc;
   }
 
   async getProperty(id: string): Promise<Property | null> {
-    const propertyRef = doc(db, COLLECTIONS.PROPERTIES, id);
-    const snapshot = await getDoc(propertyRef);
-    if (!snapshot.exists()) return null;
-    return {
-      id: snapshot.id,
-      ...snapshot.data()
-    } as Property;
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User must be authenticated');
+      }
+
+      return await this.get<Property>(id);
+    } catch (error) {
+      console.error('Error fetching property:', error);
+      throw error;
+    }
   }
 
   async getPropertyByUnitId(unitId: string): Promise<Property | null> {

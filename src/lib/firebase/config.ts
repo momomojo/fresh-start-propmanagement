@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+import { getFirestore, enableIndexedDbPersistence, connectFirestoreEmulator } from 'firebase/firestore';
+import { getAuth, setPersistence, browserLocalPersistence, connectAuthEmulator } from 'firebase/auth';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 // Ensure required environment variables are present
 const requiredEnvVars = [
@@ -29,32 +29,47 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-let app;
-let firestoreDb;
-let firebaseAuth;
-let firebaseStorage;
-
-try {
 // Initialize Firebase
-  app = initializeApp(firebaseConfig);
-  firestoreDb = getFirestore(app);
-  firebaseAuth = getAuth(app);
-  firebaseStorage = getStorage(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app); 
 
-  // Enable offline persistence
-  Promise.all([
-    setPersistence(firebaseAuth, browserLocalPersistence),
-    enableIndexedDbPersistence(firestoreDb)
-  ]).catch((error) => {
-    console.warn('Error enabling persistence:', error);
-  });
+// Initialize Firebase features with better error handling
+const initializeFirebase = async () => {
+  try {
+    // Enable offline persistence
+    await Promise.all([
+      setPersistence(auth, browserLocalPersistence),
+      enableIndexedDbPersistence(db)
+    ]).catch((error) => {
+      if (error.code === 'failed-precondition') {
+        console.warn('Multiple tabs open, persistence enabled in first tab only');
+      } else if (error.code === 'unimplemented') {
+        console.warn('Browser does not support persistence');
+      }
+    });
 
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  throw error;
-}
+    // Connect to emulators in development
+    if (import.meta.env.DEV) {
+      try {
+        connectFirestoreEmulator(db, 'localhost', 8080);
+        connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+        connectStorageEmulator(storage, 'localhost', 9199);
+      } catch (error) {
+        console.warn('Failed to connect to emulators:', error);
+      }
+    }
 
-export const db = firestoreDb;
-export const auth = firebaseAuth;
-export const storage = firebaseStorage;
+    return true;
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    return false;
+  }
+};
+
+// Initialize Firebase
+initializeFirebase();
+
+export { db, auth, storage };
 export default app;
