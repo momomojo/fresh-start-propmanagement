@@ -5,13 +5,18 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Sentry Loader Script -->
-  <script src="https://js.sentry-cdn.com/6e91a55b4f01a348d60cf4fba5f68a97.min.js" crossorigin="anonymous"></script>
-  <!-- Security Headers -->
   <meta http-equiv="Content-Security-Policy"
-    content="report-uri https://o4508478973476864.ingest.us.sentry.io/api/4508478995234816/security/?sentry_key=6e91a55b4f01a348d60cf4fba5f68a97&sentry_environment=production&sentry_release=%VITE_RELEASE_VERSION%" />
-  <meta http-equiv="Expect-CT"
-    content="report-uri=https://o4508478973476864.ingest.us.sentry.io/api/4508478995234816/security/?sentry_key=6e91a55b4f01a348d60cf4fba5f68a97" />
+    content="default-src 'self';
+             script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.sentry.io https://*.firebaseapp.com;
+             connect-src 'self' https://*.sentry.io https://*.firebaseio.com https://*.googleapis.com;
+             img-src 'self' data: https:;
+             style-src 'self' 'unsafe-inline';
+             font-src 'self' data:;
+             frame-src 'self' https://*.firebaseapp.com;
+             object-src 'none';
+             base-uri 'self';
+             form-action 'self';
+             upgrade-insecure-requests;" />
   <title>Property Management</title>
 </head>
 

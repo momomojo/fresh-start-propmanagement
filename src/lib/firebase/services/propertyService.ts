@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config';
 import { COLLECTIONS } from '../collections';
-import { BaseFirestoreService } from './baseService';
+import { BaseFirestoreService } from '../services/baseService';
 import { auth } from '../config';
 import type { Property } from '../../../types';
 

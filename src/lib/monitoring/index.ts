@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 export const initializeMonitoring = () => {
   if (import.meta.env.PROD) {
     Sentry.init({
-      dsn: "https://6e91a55b4f01a348d60cf4fba5f68a97@o4508478973476864.ingest.us.sentry.io/4508478995234816",
+      dsn: import.meta.env.VITE_SENTRY_DSN,
       integrations: [
         Sentry.browserTracingIntegration(),
         Sentry.replayIntegration(),
@@ -15,7 +15,7 @@ export const initializeMonitoring = () => {
       replaysOnErrorSampleRate: 1.0, // Sample 100% of sessions with errors
       // Environment and Release
       environment: import.meta.env.MODE,
-      release: import.meta.env.VITE_RELEASE_VERSION,
+      release: process.env.VITE_RELEASE_VERSION || '0.1.0',
       // Enable automatic instrumentation
       enableTracing: true,
       // Error Dialog

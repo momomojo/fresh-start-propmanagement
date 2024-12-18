@@ -4,6 +4,7 @@
       "collectionGroup": "properties",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "manager_id", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
@@ -24,7 +25,7 @@
         { "fieldPath": "property_id", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
       ]
-    }
+    },
     {
       "collectionGroup": "properties",
       "queryScope": "COLLECTION",
@@ -71,6 +72,23 @@
       "fields": [
         { "fieldPath": "property_id", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "units",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "property_id", "order": "ASCENDING" },
+        { "fieldPath": "rent_amount", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "maintenance_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
     },
     {

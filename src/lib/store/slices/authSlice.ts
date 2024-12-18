@@ -4,18 +4,16 @@ import type { User } from '../../../types';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   loading: boolean;
   error: string | null;
-  isOffline: boolean;
+  isInitialized: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
   loading: false,
   error: null,
-  isOffline: false,
+  isInitialized: false
 };
 
 const authSlice = createSlice({
@@ -24,36 +22,28 @@ const authSlice = createSlice({
   reducers: {
     setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
-    },
-    setToken: (state, action: PayloadAction<string | null | undefined>) => {
-      if (action.payload === undefined) {
-        return;
-      }
-      state.token = action.payload;
-      if (action.payload) {
-        localStorage.setItem('token', action.payload);
-      } else {
-        localStorage.removeItem('token');
-      }
+      state.loading = false;
+      state.error = null;
+      state.isInitialized = true;
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
+      if (action.payload) {
+        state.error = null;
+      }
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
-    },
-    setOfflineStatus: (state, action: PayloadAction<boolean>) => {
-      state.isOffline = action.payload;
+      state.loading = false;
     },
     logout: (state) => {
       state.user = null;
-      state.token = null;
       state.loading = false;
       state.error = null;
-      localStorage.removeItem('token');
+      state.isInitialized = true;
     },
   },
 });
 
-export const { setUser, setToken, setLoading, setError, logout } = authSlice.actions;
+export const { setUser, setLoading, setError, logout } = authSlice.actions;
 export default authSlice.reducer;

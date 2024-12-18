@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
-import { setUser, setToken } from '../lib/store/slices/authSlice';
+import { setUser } from '../lib/store/slices/authSlice';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -30,12 +30,11 @@ const Login: React.FC = () => {
 
     try {
       const validated = loginSchema.parse(data);
-      const { user, token } = await authService.login(
+      const { user } = await authService.login(
         validated.email,
         validated.password
       );
 
-      dispatch(setToken(token));
       dispatch(setUser(user));
       navigate('/');
     } catch (error) {

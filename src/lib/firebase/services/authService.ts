@@ -44,7 +44,7 @@ export const authService = {
         ...userDoc
       };
 
-      return { user, token: await userCredential.user.getIdToken() };
+      return { user };
     } catch (error) {
       console.error('Error registering user:', error);
       handleAuthError(error);
@@ -58,13 +58,29 @@ export const authService = {
       const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        throw new Error('User data not found');
+        // Create user document if it doesn't exist
+        const userData = {
+          email: userCredential.user.email || '',
+          name: userCredential.user.displayName || email.split('@')[0],
+          role: 'tenant', // Default role
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        await setDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid), userData);
+        return { user: { id: userCredential.user.uid, ...userData } as User };
       }
 
-      const user = { id: userDoc.id, ...userDoc.data() } as User;
-      const token = await userCredential.user.getIdToken();
+      const userData = userDoc.data();
+      const user = { 
+        id: userDoc.id,
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        created_at: userData.created_at,
+        updated_at: userData.updated_at
+      } as User;
 
-      return { user, token };
+      return { user };
     } catch (error) {
       console.error('Error logging in:', error);
       handleAuthError(error);
