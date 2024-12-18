@@ -4,7 +4,8 @@ import { useDispatch } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
 import { authService } from '../lib/services/authService';
-import { setUser } from '../lib/store/slices/authSlice';
+import { setUser, setStatus, setError } from '../lib/store/slices/authSlice';
+import { ActionStatus } from '../lib/store/types';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -14,13 +15,13 @@ const loginSchema = z.object({
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [error, setError] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { status, error } = useSelector((state: RootState) => state.auth);
+  const isLoading = status === ActionStatus.LOADING;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    dispatch(setError(null));
+    dispatch(setStatus(ActionStatus.LOADING));
 
     const formData = new FormData(e.currentTarget);
     const data = {
@@ -38,9 +39,7 @@ const Login: React.FC = () => {
       dispatch(setUser(user));
       navigate('/');
     } catch (error) {
-      setError('Invalid email or password');
-    } finally {
-      setIsLoading(false);
+      dispatch(setError('Invalid email or password'));
     }
   };
 

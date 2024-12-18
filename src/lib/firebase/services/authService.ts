@@ -58,21 +58,23 @@ export const authService = {
       const userDoc = await getDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        // Create user document if it doesn't exist
         const userData = {
           email: userCredential.user.email || '',
           name: userCredential.user.displayName || email.split('@')[0],
           role: 'tenant', // Default role
+          password_hash: '',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
         await setDoc(doc(db, COLLECTIONS.USERS, userCredential.user.uid), userData);
-        return { user: { id: userCredential.user.uid, ...userData } as User };
+        const user = { id: userCredential.user.uid, ...userData } as User;
+        return { user };
       }
 
       const userData = userDoc.data();
       const user = { 
         id: userDoc.id,
+        password_hash: '',
         email: userData.email,
         name: userData.name,
         role: userData.role,
