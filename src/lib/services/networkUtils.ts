@@ -54,3 +54,14 @@ export async function retryOperation<T>(
   
   throw lastError!;
 }
+
+export async function getClientIp(): Promise<string> {
+  try {
+    const response = await fetch('https://api.ipify.org?format=json');
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.warn('Failed to get client IP:', error);
+    return 'unknown';
+  }
+}

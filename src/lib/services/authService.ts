@@ -2,7 +2,9 @@
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase/config';
+import { securityService } from './securityService';
+import { retryOperation, getClientIp } from './networkUtils';
 import type { UserRole } from '@/types';
 
 import { handleFirebaseError } from './errorHandling';
@@ -10,14 +12,25 @@ import { handleFirebaseError } from './errorHandling';
 export const authService = {
   async login(email: string, password: string, rememberMe: boolean = false) {
     try {
-      // Set persistence before login attempt
-      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      // Get IP address for security tracking
+      const ipAddress = await getClientIp();
+      
+      try {
+        await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      } catch (error) {
+        console.warn('Persistence setting failed:', error);
+      }
+      
+      // Track login attempt before authentication
+      const preAuthTime = new Date().toISOString();
       
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       const token = await userCredential.user.getIdToken();
       
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      const userDoc = await retryOperation(() => 
+        getDoc(doc(db, 'users', userCredential.user.uid))
+      );
       
       if (!userDoc.exists()) {
         const timestamp = new Date().toISOString();
@@ -29,7 +42,19 @@ export const authService = {
           created_at: timestamp,
           updated_at: timestamp
         };
-        await setDoc(doc(db, 'users', userCredential.user.uid), userData);
+        await retryOperation(() =>
+          setDoc(doc(db, 'users', userCredential.user.uid), userData)
+        );
+        
+        // Track login attempt
+        await securityService.trackLoginAttempt(true, ipAddress, {
+          timestamp: preAuthTime,
+          deviceInfo: {
+            browser: navigator.userAgent,
+            os: navigator.platform
+          }
+        });
+        
         return {
           token,
           user: {
@@ -46,6 +71,16 @@ export const authService = {
             updated_at: new Date().toISOString()
           });
         }
+        
+        // Track successful login
+        await securityService.trackLoginAttempt(true, ipAddress, {
+          timestamp: preAuthTime,
+          deviceInfo: {
+            browser: navigator.userAgent,
+            os: navigator.platform
+          }
+        });
+        
         return {
           token,
           user: {
@@ -56,6 +91,16 @@ export const authService = {
         };
       }
     } catch (error) {
+      // Track failed login attempt
+      const ipAddress = await getClientIp();
+      await securityService.trackLoginAttempt(false, ipAddress, {
+        timestamp: new Date().toISOString(),
+        deviceInfo: {
+          browser: navigator.userAgent,
+          os: navigator.platform
+        }
+      });
+      
       console.error('Login error:', error);
       throw handleFirebaseError(error);
     }

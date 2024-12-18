@@ -15,6 +15,7 @@ import Maintenance from './pages/Maintenance';
 import Documents from './pages/Documents';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import SecurityDashboard from './pages/SecurityDashboard';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Unauthorized from './pages/Unauthorized';
@@ -68,12 +69,11 @@ function App() {
                                 </RoleBasedRoute>
                               }
                             />
-                            <Route path="/settings" element={<Settings />} />
+                            <Route path="/settings/*" element={<Settings />} />
                           </Routes>
                         </Layout>
                       </ProtectedRoute>
-                    }
-                  />
+                    } />
                 </Routes>
               </Router>
             </AuthProvider>

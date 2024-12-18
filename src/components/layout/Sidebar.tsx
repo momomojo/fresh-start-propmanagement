@@ -37,7 +37,7 @@ const Sidebar: React.FC = () => {
     { name: 'Maintenance', icon: Wrench, href: '/maintenance' },
     { name: 'Documents', icon: FileText, href: '/documents' },
     { name: 'Reports', icon: BarChart3, href: '/reports' },
-    { name: 'Settings', icon: Settings, href: '/settings' },
+    { name: 'Settings', icon: Settings, href: '/settings/security' },
   ];
 
   return (

@@ -33,6 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Initialize session management
     sessionService.initializeSession();
+    
+    // Restore auth state from localStorage if available
+    const savedAuth = localStorage.getItem('auth_state');
+    if (savedAuth) {
+      try {
+        const { user, token } = JSON.parse(savedAuth);
+        dispatch(setUser(user));
+        dispatch(setStatus(ActionStatus.SUCCEEDED));
+      } catch (error) {
+        console.warn('Failed to restore auth state:', error);
+        localStorage.removeItem('auth_state');
+      }
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
