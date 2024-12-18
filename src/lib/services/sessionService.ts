@@ -22,7 +22,7 @@ class SessionService {
     setInterval(() => this.checkSession(), 60000);
   }
 
-  resetActivityTimer(): void {
+  private resetActivityTimer(): void {
     this.lastActivity = Date.now();
     localStorage.setItem(ACTIVITY_KEY, this.lastActivity.toString());
     
@@ -47,9 +47,13 @@ class SessionService {
 
   private async handleInactivity(): Promise<void> {
     try {
-      await auth.signOut();
+      if (auth.currentUser) {
+        await auth.signOut();
+      }
       tokenService.clearToken();
-      window.location.href = '/login?reason=session_timeout';
+      localStorage.removeItem('auth_state');
+      localStorage.removeItem(ACTIVITY_KEY);
+      window.location.href = '/login?timeout=true';
     } catch (error) {
       console.error('Error handling inactivity:', error);
     }
@@ -60,6 +64,7 @@ class SessionService {
       clearTimeout(this.timeoutId);
     }
     localStorage.removeItem(ACTIVITY_KEY);
+    localStorage.removeItem('auth_state');
     tokenService.clearToken();
   }
 }

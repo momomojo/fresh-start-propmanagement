@@ -2,6 +2,8 @@ import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getAuth, type Auth } from 'firebase/auth';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
+import { connectAuthEmulator } from 'firebase/auth';
+import { connectFirestoreEmulator } from 'firebase/firestore';
 
 const requiredEnvVars = [
   'VITE_FIREBASE_API_KEY',
@@ -40,6 +42,17 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+
+// Connect to emulators in development
+if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATOR === 'true') {
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firebase emulators');
+  } catch (error) {
+    console.error('Failed to connect to emulators:', error);
+  }
+}
 
 export { auth, db, storage };
 

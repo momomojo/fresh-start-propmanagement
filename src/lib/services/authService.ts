@@ -1,45 +1,31 @@
 // src/lib/services/authService.ts
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
-import { setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification, updateProfile } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserRole } from '@/types';
 
-const AUTH_ERRORS = {
-  'auth/invalid-credential': 'Invalid email or password',
-  'auth/user-disabled': 'This account has been disabled',
-  'auth/user-not-found': 'No account found with this email',
-  'auth/wrong-password': 'Invalid email or password',
-  'auth/too-many-requests': 'Too many failed attempts. Please try again later',
-} as const;
-
-function handleAuthError(error: unknown) {
-  if (error instanceof Error && 'code' in error) {
-    const code = error.code as keyof typeof AUTH_ERRORS;
-    return new Error(AUTH_ERRORS[code] || 'An unexpected error occurred');
-  }
-  return new Error('An unexpected error occurred');
-}
+import { handleFirebaseError } from './errorHandling';
 
 export const authService = {
   async login(email: string, password: string, rememberMe: boolean = false) {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Set persistence based on remember me option
+      // Set persistence before login attempt
       await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       const token = await userCredential.user.getIdToken();
       
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        // Create user document if it doesn't exist
         const timestamp = new Date().toISOString();
         const userData = {
           email: userCredential.user.email,
           name: userCredential.user.displayName || email.split('@')[0],
           role: 'tenant',
+          emailVerified: userCredential.user.emailVerified,
           created_at: timestamp,
           updated_at: timestamp
         };
@@ -53,47 +39,67 @@ export const authService = {
         };
       } else {
         const userData = userDoc.data();
+        // Update email verification status if changed
+        if (userData.emailVerified !== userCredential.user.emailVerified) {
+          await updateDoc(doc(db, 'users', userCredential.user.uid), {
+            emailVerified: userCredential.user.emailVerified,
+            updated_at: new Date().toISOString()
+          });
+        }
         return {
           token,
           user: {
             id: userCredential.user.uid,
+            emailVerified: userCredential.user.emailVerified,
             ...userData
           }
         };
       }
     } catch (error) {
       console.error('Login error:', error);
-      throw handleAuthError(error);
+      throw handleFirebaseError(error);
     }
   },
 
   async signup(data: { email: string; password: string; name: string; role: UserRole }) {
     try {
-      // Create the user in Firebase Auth
+      // Set persistence to local by default for new signups
+      await setPersistence(auth, browserLocalPersistence);
+      
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      
+      // Update profile with display name
+      await updateProfile(userCredential.user, {
+        displayName: data.name
+      });
+      
       const timestamp = new Date().toISOString();
       
-      // Prepare user data for Firestore
       const userData = {
         email: data.email,
         name: data.name,
         password_hash: '',
         role: data.role,
+        emailVerified: false,
         created_at: timestamp,
         updated_at: timestamp
       };
       
-      // Create user document first
       await setDoc(doc(db, 'users', userCredential.user.uid), userData);
       
-      // Get fresh token
       const token = await userCredential.user.getIdToken();
+      
+      // Send email verification
+      await sendEmailVerification(userCredential.user, {
+        url: `${window.location.origin}/verify-email`
+      });
       
       return {
         token,
         user: {
           password_hash: '',
           id: userCredential.user.uid,
+          emailVerified: false,
           ...userData,
           created_at: timestamp,
           updated_at: timestamp
@@ -101,31 +107,30 @@ export const authService = {
       };
     } catch (error) {
       console.error('Signup error:', error);
-      throw handleAuthError(error);
+      throw handleFirebaseError(error);
     }
   },
 
   async logout() {
     try {
       await signOut(auth);
-      return true;
+      localStorage.removeItem('auth_state');
       return true;
     } catch (error) {
       console.error('Logout error:', error);
-      throw handleAuthError(error);
+      throw handleFirebaseError(error);
     }
   },
 
   async resetPassword(email: string) {
     try {
       await sendPasswordResetEmail(auth, email, {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: true
+        url: `${window.location.origin}/login?reset=success`
       });
       return true;
     } catch (error) {
       console.error('Password reset error:', error);
-      throw handleAuthError(error);
+      throw handleFirebaseError(error);
     }
   },
 
@@ -133,14 +138,14 @@ export const authService = {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error('No authenticated user');
+      
       await sendEmailVerification(user, {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: true
+        url: `${window.location.origin}/verify-email`
       });
       return true;
     } catch (error) {
       console.error('Email verification error:', error);
-      throw handleAuthError(error);
+      throw handleFirebaseError(error);
     }
   }
 };

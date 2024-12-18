@@ -1,14 +1,17 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { useDispatch } from 'react-redux';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useDispatch, useSelector } from 'react-redux';
 import { auth, db } from '@/lib/firebase/config';
 import { tokenService } from '@/lib/services/tokenService';
 import { sessionService } from '@/lib/services/sessionService';
 import { setUser, setStatus, setError } from '@/lib/store/slices/authSlice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionStatus } from '@/lib/store/types';
+import { RootState } from '@/lib/store';
 import type { User } from '@/types';
+import { handleFirebaseError } from '@/lib/services/errorHandling';
+import { retryOperation } from '@/lib/services/networkUtils';
 
 interface AuthContextType {
   isInitialized: boolean;
@@ -25,6 +28,7 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
 
   useEffect(() => {
     // Initialize session management
@@ -33,34 +37,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
-          // Get fresh token
-          await tokenService.refreshToken(firebaseUser);
+          const token = await retryOperation(() => tokenService.refreshToken(firebaseUser));
 
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userDoc = await retryOperation(() => getDoc(doc(db, 'users', firebaseUser.uid)));
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            dispatch(setUser({
+            const user = {
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
               name: userData.name,
               role: userData.role,
+              emailVerified: firebaseUser.emailVerified,
               created_at: userData.created_at,
               updated_at: userData.updated_at
-            }));
+            };
+            
+            // Update email verification status if changed
+            if (userData.emailVerified !== firebaseUser.emailVerified) {
+              await retryOperation(() =>
+                updateDoc(doc(db, 'users', firebaseUser.uid), {
+                  emailVerified: firebaseUser.emailVerified,
+                  updated_at: new Date().toISOString()
+                })
+              );
+            }
+            
+            dispatch(setUser(user));
+            localStorage.setItem('auth_state', JSON.stringify({ user, token }));
             dispatch(setStatus(ActionStatus.SUCCEEDED));
           } else {
             console.error('User document not found');
             dispatch(setError('User profile not found'));
             auth.signOut();
+            await auth.signOut();
           }
         } else {
           tokenService.clearToken();
+          localStorage.removeItem('auth_state');
           dispatch(setStatus(ActionStatus.IDLE));
         }
       } catch (error) {
         console.error('Auth state change error:', error);
-        dispatch(setError('Authentication failed'));
+        const appError = handleFirebaseError(error);
+        dispatch(setError(appError.message));
       } finally {
         setIsInitialized(true);
       }
@@ -81,8 +101,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         isInitialized,
-        isAuthenticated: !!auth.currentUser,
-        user: auth.currentUser as User | null
+        isAuthenticated: !!user,
+        user
       }}
     >
       {children}
