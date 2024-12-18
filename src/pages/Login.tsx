@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Building2 } from 'lucide-react';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { status, error } = useSelector((state: RootState) => state.auth);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -36,7 +37,9 @@ const Login: React.FC = () => {
       try {
         const { user, token } = await authService.login(
           validated.email,
-          validated.password
+          validated.password,
+          validated.password,
+          rememberMe
         );
         dispatch(setUser(user));
         dispatch(setToken(token));
@@ -119,6 +122,8 @@ const Login: React.FC = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
@@ -127,9 +132,9 @@ const Login: React.FC = () => {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-purple-600 hover:text-purple-500">
+              <Link to="/reset-password" className="font-medium text-purple-600 hover:text-purple-500">
                 Forgot your password?
-              </a>
+              </Link>
             </div>
           </div>
 

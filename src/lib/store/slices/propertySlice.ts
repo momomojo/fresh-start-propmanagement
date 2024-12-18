@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { propertyService } from '../../services/propertyService';
+import { RootState } from '../index';
 import type { Property } from '../../../types';
 import { ActionStatus } from '../types';
 

@@ -1,5 +1,6 @@
 // src/lib/services/authService.ts
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { setPersistence, browserLocalPersistence, browserSessionPersistence, sendPasswordResetEmail, sendEmailVerification } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import type { UserRole } from '@/types';
@@ -21,9 +22,13 @@ function handleAuthError(error: unknown) {
 }
 
 export const authService = {
-  async login(email: string, password: string) {
+  async login(email: string, password: string, rememberMe: boolean = false) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Set persistence based on remember me option
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      
       const token = await userCredential.user.getIdToken();
       
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
@@ -104,9 +109,38 @@ export const authService = {
     try {
       await signOut(auth);
       return true;
+      return true;
     } catch (error) {
       console.error('Logout error:', error);
       throw handleAuthError(error);
     }
   },
+
+  async resetPassword(email: string) {
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true
+      });
+      return true;
+    } catch (error) {
+      console.error('Password reset error:', error);
+      throw handleAuthError(error);
+    }
+  },
+
+  async verifyEmail() {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No authenticated user');
+      await sendEmailVerification(user, {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true
+      });
+      return true;
+    } catch (error) {
+      console.error('Email verification error:', error);
+      throw handleAuthError(error);
+    }
+  }
 };

@@ -46,7 +46,7 @@ service cloud.firestore {
 
     // Properties collection
     match /properties/{propertyId} {
-      allow read: if isAuthenticated() && (isAdmin() || isPropertyManager() || isTenant());
+      allow read: if isAuthenticated();
       allow create: if isAdmin() || isPropertyManager();
       allow update: if isAdmin() || isPropertyManagerForProperty(propertyId);
       allow delete: if isAdmin();
@@ -54,7 +54,11 @@ service cloud.firestore {
     
     // Units collection
     match /units/{unitId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isPropertyManager() || 
+        (isTenant() && exists(/databases/$(database)/documents/properties/$(resource.data.property_id)))
+      );
       allow create: if isAdmin() || isPropertyManager();
       allow update: if isAdmin() || 
         (isPropertyManager() && 

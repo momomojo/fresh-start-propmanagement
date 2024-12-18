@@ -1,6 +1,7 @@
 import { configureStore, ThunkAction, Action, Middleware } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { firestoreMiddleware } from './middleware/firestoreMiddleware';
+import { authMiddleware } from './middleware/authMiddleware';
 import { db, auth, storage } from '../firebase/config';
 import authReducer from './slices/authSlice';
 import propertyReducer from './slices/propertySlice';
@@ -33,7 +34,10 @@ const storeConfig = {
       thunk: {
         extraArgument: { db, auth, storage }
       }
-    }).concat(firestoreMiddleware as Middleware),
+    }).concat([
+      firestoreMiddleware as Middleware,
+      authMiddleware as Middleware
+    ]),
 };
 
 const store = configureStore<Reducers>(storeConfig);

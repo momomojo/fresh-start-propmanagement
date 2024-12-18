@@ -3,6 +3,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useDispatch } from 'react-redux';
 import { auth, db } from '@/lib/firebase/config';
+import { tokenService } from '@/lib/services/tokenService';
+import { sessionService } from '@/lib/services/sessionService';
 import { setUser, setStatus, setError } from '@/lib/store/slices/authSlice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionStatus } from '@/lib/store/types';
@@ -25,9 +27,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Initialize session management
+    sessionService.initializeSession();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
+          // Get fresh token
+          await tokenService.refreshToken(firebaseUser);
+
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           
           if (userDoc.exists()) {
@@ -47,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             auth.signOut();
           }
         } else {
+          tokenService.clearToken();
           dispatch(setStatus(ActionStatus.IDLE));
         }
       } catch (error) {
