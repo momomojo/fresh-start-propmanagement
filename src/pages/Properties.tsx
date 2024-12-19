@@ -71,10 +71,14 @@ const Properties = () => {
   };
 
   const handleUnitAdded = (unit: PropertyUnit) => {
-    setIsAddUnitModalOpen(false);
-    setSelectedPropertyForUnit(null);
+    toast({
+      title: "Success",
+      description: "Unit added successfully",
+    });
     // Refresh units list
     dispatch(fetchUnits());
+    setIsAddUnitModalOpen(false);
+    setSelectedPropertyForUnit(null);
   };
 
   const handleUnitClick = (unit: PropertyUnit & { tenant?: Tenant }) => {
@@ -318,7 +322,10 @@ const Properties = () => {
         {selectedPropertyForUnit && (
           <AddUnitModal
             propertyId={selectedPropertyForUnit}
-            onClose={() => setIsAddUnitModalOpen(false)}
+            onClose={() => {
+              setIsAddUnitModalOpen(false);
+              setSelectedPropertyForUnit(null);
+            }}
             onSuccess={handleUnitAdded}
           />
         )}

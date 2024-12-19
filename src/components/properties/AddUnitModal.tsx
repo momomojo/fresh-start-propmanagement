@@ -1,18 +1,25 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { z } from 'zod';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { unitService } from '@/lib/services/unitService';
+import { toast } from '@/components/ui/use-toast';
 import FormField from '../ui/Form/FormField';
 import Input from '../ui/Form/Input';
-import { Select } from '@/components/ui/select';
+import Select from '@/components/ui/Form/Select';
 import type { PropertyUnit } from '@/types';
-import { toast } from '@/components/ui/use-toast';
 
 interface AddUnitModalProps {
   propertyId: string;
   onClose: () => void;
   onSuccess: (unit: PropertyUnit) => void;
 }
+
+const statusOptions = [
+  { value: 'available', label: 'Available' },
+  { value: 'occupied', label: 'Occupied' },
+  { value: 'maintenance', label: 'Under Maintenance' }
+];
 
 const unitSchema = z.object({
   unit_number: z.string().min(1, 'Unit number is required'),
@@ -27,17 +34,6 @@ const unitSchema = z.object({
 const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSuccess }) => {
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = React.useState(false);
-
-  const statusOptions = [
-    { value: 'available', label: 'Available' },
-    { value: 'occupied', label: 'Occupied' },
-    { value: 'maintenance', label: 'Under Maintenance' }
-  ];
-
-  const handleClose = () => {
-    setErrors({});
-    onClose();
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,6 +57,10 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
         ...validated,
         property_id: propertyId,
       });
+      toast({
+        title: "Success",
+        description: "Unit created successfully",
+      });
       onSuccess(unit);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -73,6 +73,11 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
         setErrors(newErrors);
       } else {
         setErrors({ form: 'Failed to create unit. Please try again.' });
+        toast({
+          title: "Error",
+          description: "Failed to create unit. Please try again.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -80,22 +85,11 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black opacity-30" onClick={handleClose}></div>
-        
-        <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Add New Unit
-            </h2>
-            <button
-              onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add New Unit</DialogTitle>
+        </DialogHeader>
 
           {errors.form && (
             <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/50 dark:text-red-400">
@@ -123,15 +117,12 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
             </FormField>
 
             <FormField label="Status" error={errors.status} required>
-              <select
+              <Select
                 name="status"
-                defaultValue="available" 
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-              >
-                <option value="available">Available</option>
-                <option value="occupied">Occupied</option>
-                <option value="maintenance">Under Maintenance</option>
-              </select>
+                options={statusOptions}
+                defaultValue="available"
+                error={!!errors.status}
+              />
             </FormField>
 
             <FormField label="Rent Amount" error={errors.rent_amount} required>
@@ -181,7 +172,7 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
             <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={onClose}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 Cancel
@@ -195,9 +186,8 @@ const AddUnitModal: React.FC<AddUnitModalProps> = ({ propertyId, onClose, onSucc
               </button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -42,17 +42,21 @@ service cloud.firestore {
       // Anyone can read basic user info, but sensitive fields are protected
       allow read: if isAuthenticated();
       
+      // Allow updating login history and devices
+      allow update: if isAuthenticated() &&
+        (request.auth.uid == userId || isAdmin()) &&
+        (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['login_history', 'devices', 'updated_at']) ||
+          request.resource.data.updated_at is timestamp
+        );
+      
       // Allow creation during signup
       allow create: if isAuthenticated() && 
                     request.auth.uid == userId &&
                     request.resource.data.keys().hasAll(['email', 'name', 'role']) &&
                     request.resource.data.role == 'tenant' &&
                     hasRequiredTimestamps(request.resource.data);
-      
-      // Users can update their own profiles, admins can update any profile
-      allow update: if isAuthenticated() &&
-                    (request.auth.uid == userId || isAdmin()) &&
-                    request.resource.data.updated_at is timestamp;
       
       // Only admins can delete users
       allow delete: if isAdmin();
