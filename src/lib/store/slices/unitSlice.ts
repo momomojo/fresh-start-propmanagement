@@ -1,13 +1,19 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { unitService } from '../../services/unitService';
+import { unitService } from '@/lib/services/unitService';
 import type { PropertyUnit } from '../../../types';
 import { ActionStatus } from '../types';
+import { handleFirebaseError } from '@/lib/services/errorHandling';
 
 interface UnitState {
   units: PropertyUnit[];
   selectedUnit: PropertyUnit | null;
   status: ActionStatus;
   error: string | null;
+  filters: {
+    propertyId: string | null;
+    status: string[];
+    search: string;
+  };
 }
 
 const initialState: UnitState = {
@@ -15,6 +21,11 @@ const initialState: UnitState = {
   selectedUnit: null,
   status: ActionStatus.IDLE,
   error: null,
+  filters: {
+    propertyId: null,
+    status: [],
+    search: '',
+  },
 };
 
 // Async thunks
@@ -24,7 +35,8 @@ export const fetchUnits = createAsyncThunk(
     try {
       return await unitService.getUnits();
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const appError = handleFirebaseError(error);
+      return rejectWithValue(appError.message);
     }
   }
 );
@@ -35,7 +47,8 @@ export const fetchPropertyUnits = createAsyncThunk(
     try {
       return await unitService.getPropertyUnits(propertyId);
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const appError = handleFirebaseError(error);
+      return rejectWithValue(appError.message);
     }
   }
 );
@@ -46,7 +59,8 @@ export const createUnit = createAsyncThunk(
     try {
       return await unitService.createUnit(data);
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const appError = handleFirebaseError(error);
+      return rejectWithValue(appError.message);
     }
   }
 );
@@ -61,7 +75,8 @@ export const updateUnit = createAsyncThunk(
       }
       return updatedUnit;
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const appError = handleFirebaseError(error);
+      return rejectWithValue(appError.message);
     }
   }
 );
@@ -73,7 +88,8 @@ export const deleteUnit = createAsyncThunk(
       await unitService.deleteUnit(id);
       return id;
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const appError = handleFirebaseError(error);
+      return rejectWithValue(appError.message);
     }
   }
 );
@@ -82,66 +98,109 @@ const unitSlice = createSlice({
   name: 'units',
   initialState,
   reducers: {
+    setUnits: (state, action: PayloadAction<PropertyUnit[]>) => {
+      state.units = action.payload;
+      state.status = ActionStatus.SUCCEEDED;
+    },
     setSelectedUnit: (state, action: PayloadAction<PropertyUnit | null>) => {
       state.selectedUnit = action.payload;
     },
-    clearError: (state) => {
-      state.error = null;
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.status = action.payload ? ActionStatus.LOADING : ActionStatus.IDLE;
     },
-    setError: (state, action: PayloadAction<string>) => {
+    setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
-      state.status = ActionStatus.FAILED;
+      if (action.payload) {
+        state.status = ActionStatus.FAILED;
+      }
+    },
+    setFilters: (state, action: PayloadAction<Partial<UnitState['filters']>>) => {
+      state.filters = { ...state.filters, ...action.payload };
+    },
+    clearFilters: (state) => {
+      state.filters = initialState.filters;
     },
   },
   extraReducers: (builder) => {
-    // Fetch all units
-    builder.addCase(fetchUnits.pending, (state) => {
-      state.status = ActionStatus.LOADING;
-      state.error = null;
-    });
-    builder.addCase(fetchUnits.fulfilled, (state, action) => {
-      state.status = ActionStatus.SUCCEEDED;
-      state.units = action.payload;
-    });
-    builder.addCase(fetchUnits.rejected, (state, action) => {
-      state.status = ActionStatus.FAILED;
-      state.error = action.payload as string;
-    });
-
-    // Fetch property units
-    builder.addCase(fetchPropertyUnits.pending, (state) => {
-      state.status = ActionStatus.LOADING;
-      state.error = null;
-    });
-    builder.addCase(fetchPropertyUnits.fulfilled, (state, action) => {
-      state.status = ActionStatus.SUCCEEDED;
-      state.units = action.payload;
-    });
-    builder.addCase(fetchPropertyUnits.rejected, (state, action) => {
-      state.status = ActionStatus.FAILED;
-      state.error = action.payload as string;
-    });
-
-    // Create unit
-    builder.addCase(createUnit.fulfilled, (state, action) => {
-      state.units.push(action.payload);
-    });
-
-    // Update unit
-    builder.addCase(updateUnit.fulfilled, (state, action) => {
-      const index = state.units.findIndex(u => u.id === action.payload.id);
-      if (index !== -1) {
-        state.units[index] = action.payload;
-      }
-    });
-
-    // Delete unit
-    builder.addCase(deleteUnit.fulfilled, (state, action) => {
-      state.units = state.units.filter(u => u.id !== action.payload);
-    });
+    builder
+      // Fetch units
+      .addCase(fetchUnits.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(fetchUnits.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        state.units = action.payload;
+      })
+      .addCase(fetchUnits.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      })
+      // Fetch property units
+      .addCase(fetchPropertyUnits.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(fetchPropertyUnits.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        state.units = action.payload;
+      })
+      .addCase(fetchPropertyUnits.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      })
+      // Create unit
+      .addCase(createUnit.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(createUnit.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        state.units.push(action.payload);
+      })
+      .addCase(createUnit.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      })
+      // Update unit
+      .addCase(updateUnit.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(updateUnit.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        const index = state.units.findIndex(u => u.id === action.payload.id);
+        if (index !== -1) {
+          state.units[index] = action.payload;
+        }
+      })
+      .addCase(updateUnit.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      })
+      // Delete unit
+      .addCase(deleteUnit.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(deleteUnit.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        state.units = state.units.filter(u => u.id !== action.payload);
+      })
+      .addCase(deleteUnit.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      });
   },
 });
 
-export const { setSelectedUnit, clearError, setError } = unitSlice.actions;
+export const {
+  setUnits,
+  setSelectedUnit,
+  setLoading,
+  setError,
+  setFilters,
+  clearFilters,
+} = unitSlice.actions;
 
 export default unitSlice.reducer;

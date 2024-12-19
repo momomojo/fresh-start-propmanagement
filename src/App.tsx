@@ -1,8 +1,11 @@
 import { Provider } from 'react-redux';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { PersistGate } from 'redux-persist/integration/react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; 
 import { ThemeProvider } from '@/components/theme-provider';
 import { AuthErrorBoundary } from './components/auth/AuthErrorBoundary';
-import { store } from '@/lib/store';
+import { store, persistor } from '@/lib/store';
+import { syncService } from '@/lib/services/syncService';
 import { AuthProvider } from './providers/AuthProvider';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { RoleBasedRoute } from './components/auth/RoleBasedRoute';
@@ -25,10 +28,11 @@ import EmailVerification from './pages/EmailVerification';
 function App() {
   return (
     <Provider store={store}>
-      <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
-        <ErrorBoundary>
-          <AuthErrorBoundary>
-            <AuthProvider>
+      <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
+        <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
+          <ErrorBoundary>
+            <AuthErrorBoundary>
+              <AuthProvider>
               <Router>
                 <Routes>
                   <Route path="/login" element={<Login />} />
@@ -76,10 +80,11 @@ function App() {
                     } />
                 </Routes>
               </Router>
-            </AuthProvider>
-          </AuthErrorBoundary>
-        </ErrorBoundary>
-      </ThemeProvider>
+              </AuthProvider>
+            </AuthErrorBoundary>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }

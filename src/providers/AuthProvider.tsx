@@ -2,13 +2,15 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useDispatch, useSelector } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 import { auth, db } from '@/lib/firebase/config';
 import { tokenService } from '@/lib/services/tokenService';
 import { sessionService } from '@/lib/services/sessionService';
+import { syncService } from '@/lib/services/syncService';
 import { setUser, setStatus, setError } from '@/lib/store/slices/authSlice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ActionStatus } from '@/lib/store/types';
-import { RootState } from '@/lib/store';
+import { RootState, persistor } from '@/lib/store';
 import type { User, AuthContextType } from '@/types';
 import { handleFirebaseError } from '@/lib/services/errorHandling';
 import { retryOperation } from '@/lib/services/networkUtils';
@@ -45,6 +47,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       try {
         if (firebaseUser) {
           const token = await retryOperation(() => tokenService.refreshToken(firebaseUser));
+          syncService.startSync(firebaseUser.uid);
 
           const userDoc = await retryOperation(() => getDoc(doc(db, 'users', firebaseUser.uid)));
           
@@ -81,6 +84,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           tokenService.clearToken();
+          syncService.stopSync();
           localStorage.removeItem('auth_state');
           dispatch(setStatus(ActionStatus.IDLE));
         }
@@ -105,15 +109,17 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        isInitialized,
-        isAuthenticated: !!user,
-        user
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <PersistGate loading={<LoadingSpinner />} persistor={persistor}>
+      <AuthContext.Provider
+        value={{
+          isInitialized,
+          isAuthenticated: !!user,
+          user
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    </PersistGate>
   );
 }
 

@@ -1,0 +1,313 @@
+# State Management and Collection Merging Plan
+
+## 1. Data Model Restructuring
+
+### A. Core Collections
+
+1. Properties Collection
+```typescript
+interface Property {
+  id: string;
+  name: string;
+  address: string;
+  type: 'apartment' | 'house' | 'commercial';
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+  manager_id: string;
+}
+```
+
+2. Units Collection
+```typescript
+interface Unit {
+  id: string;
+  property_id: string;
+  unit_number: string;
+  floor_plan: string;
+  square_feet: number;
+  bedrooms: number;
+  bathrooms: number;
+  base_rent: number;
+  status: 'vacant' | 'occupied' | 'maintenance';
+  created_at: string;
+  updated_at: string;
+}
+```
+
+3. Tenants Collection (Simplified)
+```typescript
+interface Tenant {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+  documents: string[];
+}
+```
+
+4. Leases Collection (New Central Entity)
+```typescript
+interface Lease {
+  id: string;
+  unit_id: string;
+  tenant_id: string;
+  status: 'active' | 'pending' | 'ended';
+  start_date: string;
+  end_date: string;
+  current_rent: number;
+  security_deposit: number;
+  payment_day: number;
+  late_fee_amount: number;
+  utilities_included: string[];
+  created_at: string;
+  updated_at: string;
+}
+```
+
+5. RentHistory Collection (New)
+```typescript
+interface RentHistory {
+  id: string;
+  lease_id: string;
+  amount: number;
+  effective_date: string;
+  reason: 'initial' | 'increase' | 'decrease' | 'adjustment';
+  notes: string;
+  created_at: string;
+}
+```
+
+### B. Supporting Collections
+
+6. Payments Collection
+```typescript
+interface Payment {
+  id: string;
+  lease_id: string;
+  amount: number;
+  type: 'rent' | 'deposit' | 'fee';
+  status: 'pending' | 'completed' | 'failed';
+  due_date: string;
+  paid_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+7. MaintenanceRequests Collection
+```typescript
+interface MaintenanceRequest {
+  id: string;
+  unit_id: string;
+  tenant_id: string;
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high' | 'emergency';
+  status: 'pending' | 'in_progress' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
+```
+
+## 2. State Management Updates
+
+### A. Redux Store Structure
+```typescript
+interface RootState {
+  auth: AuthState;
+  properties: PropertyState;
+  units: UnitState;
+  tenants: TenantState;
+  leases: LeaseState;
+  maintenance: MaintenanceState;
+  payments: PaymentState;
+  ui: UIState;
+}
+```
+
+### B. New Redux Slices
+
+1. Lease Slice
+```typescript
+const leaseSlice = createSlice({
+  name: 'leases',
+  initialState,
+  reducers: {
+    setLeases: (state, action) => {...},
+    addLease: (state, action) => {...},
+    updateLease: (state, action) => {...},
+    deleteLease: (state, action) => {...},
+    setFilters: (state, action) => {...},
+  }
+});
+```
+
+2. Payment Slice
+```typescript
+const paymentSlice = createSlice({
+  name: 'payments',
+  initialState,
+  reducers: {
+    setPayments: (state, action) => {...},
+    addPayment: (state, action) => {...},
+    updatePayment: (state, action) => {...},
+    setFilters: (state, action) => {...},
+  }
+});
+```
+
+## 3. Service Layer Updates
+
+### A. New Services
+
+1. LeaseService
+```typescript
+class LeaseService {
+  async createLease(data: NewLease): Promise<Lease>;
+  async updateLease(id: string, data: Partial<Lease>): Promise<Lease>;
+  async endLease(id: string): Promise<void>;
+  async getActiveLeaseByUnit(unitId: string): Promise<Lease | null>;
+  async getTenantLeases(tenantId: string): Promise<Lease[]>;
+}
+```
+
+2. RentHistoryService
+```typescript
+class RentHistoryService {
+  async addRentChange(data: NewRentHistory): Promise<RentHistory>;
+  async getRentHistory(leaseId: string): Promise<RentHistory[]>;
+  async getCurrentRent(leaseId: string): Promise<number>;
+}
+```
+
+### B. Updated Services
+
+1. UnitService Updates
+```typescript
+class UnitService {
+  async getUnitWithLease(id: string): Promise<UnitWithLease>;
+  async getAvailableUnits(): Promise<Unit[]>;
+  async updateUnitStatus(id: string, status: UnitStatus): Promise<Unit>;
+}
+```
+
+2. TenantService Updates
+```typescript
+class TenantService {
+  async getTenantWithActiveLeases(id: string): Promise<TenantWithLeases>;
+  async getTenantsByProperty(propertyId: string): Promise<Tenant[]>;
+}
+```
+
+## 4. Data Migration Plan
+
+### A. Pre-Migration Tasks
+1. Backup all existing collections
+2. Create new collections with proper indexes
+3. Validate existing data integrity
+
+### B. Migration Steps
+1. Create Leases from existing tenant-unit relationships
+2. Initialize RentHistory from current rent amounts
+3. Update Unit references to remove tenant info
+4. Update Tenant references to remove unit info
+5. Validate data consistency after migration
+
+### C. Post-Migration Tasks
+1. Update security rules for new collections
+2. Verify all relationships are maintained
+3. Run test queries to ensure performance
+
+## 5. UI Component Updates
+
+### A. New Components
+
+1. LeaseManagement
+```typescript
+const LeaseManagement: React.FC = () => {
+  // Lease CRUD operations
+  // Rent history display
+  // Payment tracking
+};
+```
+
+2. RentHistory
+```typescript
+const RentHistory: React.FC<{ leaseId: string }> = () => {
+  // Display rent changes over time
+  // Show reason for changes
+};
+```
+
+### B. Updated Components
+
+1. UnitDetails
+```typescript
+const UnitDetails: React.FC<{ unitId: string }> = () => {
+  // Show unit info
+  // Show current/past leases
+  // Show maintenance history
+};
+```
+
+2. TenantDetails
+```typescript
+const TenantDetails: React.FC<{ tenantId: string }> = () => {
+  // Show tenant info
+  // Show current/past leases
+  // Show payment history
+};
+```
+
+## 6. Implementation Phases
+
+### Phase 1: Foundation (Week 1)
+1. Create new collections and indexes
+2. Implement base services
+3. Set up new Redux slices
+4. Create data migration scripts
+
+### Phase 2: Migration (Week 1-2)
+1. Run data validation
+2. Execute migration scripts
+3. Verify data integrity
+4. Update security rules
+
+### Phase 3: UI Updates (Week 2-3)
+1. Create new components
+2. Update existing components
+3. Implement new features
+4. Add data validation
+
+### Phase 4: Testing & Optimization (Week 3-4)
+1. Unit testing
+2. Integration testing
+3. Performance testing
+4. Security testing
+
+## 7. Success Criteria
+
+1. Data Integrity
+- All relationships maintained
+- No duplicate data
+- Proper cascading updates
+
+2. Performance
+- Query response times under 200ms
+- Efficient data loading
+- Proper indexing
+
+3. User Experience
+- Seamless data updates
+- Consistent UI state
+- Clear error handling
+
+4. Maintenance
+- Clear documentation
+- Type safety
+- Error tracking
+- Data backup strategy

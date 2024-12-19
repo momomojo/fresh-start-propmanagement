@@ -12,7 +12,7 @@ import { PropertyCard } from '@/components/properties/PropertyCard';
 import { UnitList } from '@/components/properties/UnitList';
 import AddPropertyModal from '@/components/properties/AddPropertyModal';
 import AddUnitModal from '@/components/properties/AddUnitModal';
-import { useAppDispatch, useAppSelector } from '@/lib/store';
+import { useAppDispatch, useAppSelector, useProperties } from '@/lib/store';
 import { fetchProperties, setError as setPropertyError } from '@/lib/store/slices/propertySlice';
 import { fetchUnits, setError as setUnitError } from '@/lib/store/slices/unitSlice';
 import { Property, PropertyUnit, Tenant } from '@/types';
@@ -34,7 +34,7 @@ const exportToCSV = (properties: Property[]) => {
 };
 const Properties = () => {
   const dispatch = useAppDispatch();
-  const { properties, status, error } = useAppSelector((state) => state.properties);
+  const { properties, status, error } = useProperties();
   const { units, status: unitsStatus, error: unitsError } = useAppSelector((state) => state.units);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [propertyToDelete, setPropertyToDelete] = useState<string | null>(null);

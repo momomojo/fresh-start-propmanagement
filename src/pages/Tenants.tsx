@@ -1,7 +1,8 @@
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { Users, Plus, Search, Filter, Pencil, Trash2 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { useDispatch } from 'react-redux';
+import { Users, Plus, Search, Filter, Pencil, Trash2, Download, MessageSquare } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import PageHeader from '../components/ui/PageHeader';
 import Table from '../components/ui/Table/Table';
 import TablePagination from '../components/ui/Table/TablePagination';
@@ -9,21 +10,25 @@ import AddTenantModal from '../components/tenants/AddTenantModal';
 import TenantDetailsModal from '../components/tenants/TenantDetailsModal';
 import Input from '../components/ui/Form/Input';
 import Select from '@/components/ui/Form/Select';
-import type { RootState } from '../lib/store';
+import { useAppSelector, useTenants, useProperties } from '@/lib/store';
 import { setTenants, setLoading, setFilters } from '../lib/store/slices/tenantSlice';
 import { tenantService } from '../lib/services/tenantService';
+import { toast } from '@/components/ui/use-toast';
+import { Toaster } from '@/components/ui/toaster';
 
 const Tenants: React.FC = () => {
   const dispatch = useDispatch();
-  const { tenants, loading, filters } = useSelector((state: RootState) => state.tenants);
-  const { properties } = useSelector((state: RootState) => state.properties);
+  const { tenants, loading, filters } = useTenants();
+  const { properties } = useProperties();
   
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [selectedTenantId, setSelectedTenantId] = React.useState<string | null>(null);
   const [currentPage, setCurrentPage] = React.useState(1);
   const itemsPerPage = 10;
 
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null); 
+  const [selectedFilters, setSelectedFilters] = React.useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   React.useEffect(() => {
     const fetchTenants = async () => {
@@ -136,6 +141,42 @@ const Tenants: React.FC = () => {
         description="Manage your tenants and leases"
       />
       
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Tenants</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{tenants.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Occupancy Rate</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">78%</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">$24,500</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Overdue Payments</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-500">3</div>
+          </CardContent>
+        </Card>
+      </div>
+      
       <div className="mb-6 flex flex-col sm:flex-row justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative">
@@ -143,11 +184,36 @@ const Tenants: React.FC = () => {
             <Input
               type="text"
               placeholder="Search tenants..."
-              className="pl-10"
-              value={filters.search}
-              onChange={(e) => dispatch(setFilters({ search: e.target.value }))}
+              className="pl-10 min-w-[250px]"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                dispatch(setFilters({ search: e.target.value }));
+              }}
             />
           </div>
+          
+          <Select
+            value={filters.leaseStatus || ''}
+            onChange={(e) => dispatch(setFilters({ leaseStatus: e.target.value }))}
+            options={[
+              { value: '', label: 'All Lease Statuses' },
+              { value: 'active', label: 'Active Lease' },
+              { value: 'expired', label: 'Expired Lease' },
+              { value: 'pending', label: 'Pending Lease' }
+            ]}
+          />
+          
+          <Select
+            value={filters.paymentStatus || ''}
+            onChange={(e) => dispatch(setFilters({ paymentStatus: e.target.value }))}
+            options={[
+              { value: '', label: 'All Payment Statuses' },
+              { value: 'current', label: 'Current' },
+              { value: 'late', label: 'Late' },
+              { value: 'overdue', label: 'Overdue' }
+            ]}
+          />
           
           <Select
             value={filters.propertyId || ''}
@@ -169,14 +235,21 @@ const Tenants: React.FC = () => {
             ]}
           />
         </div>
-
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Tenant
-        </button>
+        
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => {}}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" onClick={() => {}}>
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Message All
+          </Button>
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Tenant
+          </Button>
+        </div>
       </div>
 
       {error && (
@@ -199,6 +272,8 @@ const Tenants: React.FC = () => {
           itemsPerPage={itemsPerPage}
         />
       </Card>
+
+      <Toaster />
 
       <AddTenantModal
         isOpen={isAddModalOpen}
