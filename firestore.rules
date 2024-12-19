@@ -62,18 +62,17 @@ service cloud.firestore {
     match /properties/{propertyId} {
       allow read: if isAuthenticated();
       
-      // Only admins and property managers can create
+      // Only admins and property managers can create properties
       allow create: if isAdmin() || 
         (isPropertyManager() && 
-         request.resource.data.keys().hasAll(['name', 'address', 'type', 'units', 'status']) &&
-         hasRequiredTimestamps(request.resource.data));
+         request.resource.data.manager_id == request.auth.uid);
       
-      // Only admins and assigned property managers can update
-      allow update: if isAdmin() || 
-        (isPropertyManager() && 
-         resource.data.manager_id == request.auth.uid &&
-         request.resource.data.updated_at is timestamp &&
-         isValidTimestamp(request.resource.data.updated_at));
+      // Allow updates by admins and assigned property managers
+      allow update: if isAdmin() ||
+        (isPropertyManager() && (
+          resource.data.manager_id == request.auth.uid ||
+          request.resource.data.manager_id == request.auth.uid
+        ));
       
       // Only admins can delete properties
       allow delete: if isAdmin();

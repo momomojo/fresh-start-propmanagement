@@ -227,7 +227,6 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, pr
             <FormField label="Status" error={errors.status} required>
               <Select
                 name="status"
-                defaultValue={property?.status || 'available'}
                 defaultValue={property?.type || 'apartment'}
                 options={[
                   { value: 'available', label: 'Available' },
@@ -241,7 +240,7 @@ const AddPropertyModal: React.FC<AddPropertyModalProps> = ({ isOpen, onClose, pr
             <FormField label="Property Manager" error={errors.manager_id}>
               <Select
                 name="manager_id"
-                defaultValue={property?.manager_id || ''}
+                defaultValue={property?.manager_id || currentUser?.id || ''}
                 options={propertyManagers.map((manager: User) => ({
                   value: manager.id,
                   label: manager.name,

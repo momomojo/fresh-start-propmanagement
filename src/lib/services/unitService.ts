@@ -1,9 +1,10 @@
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, addDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { unitService as firebaseService } from '../firebase/services/unitService';
 import type { PropertyUnit } from '../../types';
 import { handleFirebaseError } from './errorHandling';
 import { retryOperation } from './networkUtils';
+import { COLLECTIONS } from '../firebase/collections';
 
 class UnitService {
   async getUnits(): Promise<PropertyUnit[]> {
@@ -105,7 +106,26 @@ class UnitService {
   }
 
   async createUnit(data: Omit<PropertyUnit, 'id' | 'created_at' | 'updated_at'>): Promise<PropertyUnit> {
-    return firebaseService.createUnit(data);
+    try {
+      const timestamp = new Date().toISOString();
+      const unitData = {
+        ...data,
+        created_at: timestamp,
+        updated_at: timestamp
+      };
+
+      const docRef = await addDoc(collection(db, COLLECTIONS.UNITS), {
+        ...unitData
+      });
+      
+      return {
+        id: docRef.id,
+        ...unitData
+      };
+    } catch (error) {
+      console.error('Error creating unit:', error);
+      throw error;
+    }
   }
 
   async updateUnit(id: string, data: Partial<PropertyUnit>): Promise<PropertyUnit | null> {

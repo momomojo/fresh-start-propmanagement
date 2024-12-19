@@ -1,202 +1,223 @@
 import React, { useState } from 'react';
+import { X } from 'lucide-react';
 import { z } from 'zod';
-import { unitService } from '../../lib/services/unitService';
-import type { PropertyUnit } from '../../types';
+import { unitService } from '@/lib/services/unitService';
 import FormField from '../ui/Form/FormField';
 import Input from '../ui/Form/Input';
-import Select from '../ui/Form/Select';
+import { toast } from '@/components/ui/use-toast';
+import type { PropertyUnit } from '@/types';
 
 interface UnitDetailsModalProps {
   unit: PropertyUnit;
   onClose: () => void;
   onUpdate: (unit: PropertyUnit) => void;
-  onDelete: (unitId: string) => void;
 }
 
 const unitSchema = z.object({
   unit_number: z.string().min(1, 'Unit number is required'),
-  floor_plan: z.string().nullable(),
+  floor_plan: z.string().min(1, 'Floor plan is required'),
   status: z.enum(['available', 'occupied', 'maintenance']),
+  rent_amount: z.number().min(0, 'Rent amount must be positive'),
+  square_feet: z.number().min(0, 'Square footage must be positive'),
+  bedrooms: z.number().min(0, 'Number of bedrooms must be positive'),
+  bathrooms: z.number().min(0, 'Number of bathrooms must be positive'),
 });
 
-const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ 
-  unit, 
-  onClose, 
-  onUpdate,
-  onDelete 
-}) => {
+export function UnitDetailsModal({ unit, onClose, onUpdate }: UnitDetailsModalProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
     setErrors({});
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(e.currentTarget);
     const data = {
       unit_number: formData.get('unit_number') as string,
-      floor_plan: formData.get('floor_plan') as string || null,
-      status: formData.get('status') as 'available' | 'occupied' | 'maintenance',
+      floor_plan: formData.get('floor_plan') as string,
+      status: formData.get('status') as PropertyUnit['status'],
+      rent_amount: Number(formData.get('rent_amount')),
+      square_feet: Number(formData.get('square_feet')),
+      bedrooms: Number(formData.get('bedrooms')),
+      bathrooms: Number(formData.get('bathrooms')),
     };
 
     try {
       const validated = unitSchema.parse(data);
-      const updatedUnit = await unitService.updateUnit(unit.id, validated);
+      const updatedUnit = await unitService.updateUnit(unit.id, {
+        ...validated,
+        property_id: unit.property_id,
+      });
+      
       if (updatedUnit) {
+        toast({
+          title: "Success",
+          description: "Unit updated successfully",
+        });
         onUpdate(updatedUnit);
         setIsEditing(false);
       }
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
-        err.errors.forEach((error) => {
-          if (error.path) {
-            fieldErrors[error.path[0]] = error.message;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path) {
+            newErrors[err.path[0]] = err.message;
           }
         });
-        setErrors(fieldErrors);
+        setErrors(newErrors);
       } else {
-        console.error('Error updating unit:', err);
-        setErrors({ submit: 'Failed to update unit' });
+        setErrors({ form: 'Failed to update unit. Please try again.' });
       }
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await unitService.deleteUnit(unit.id);
-      onDelete(unit.id);
-      onClose();
-    } catch (err) {
-      console.error('Error deleting unit:', err);
-      setErrors({ submit: 'Failed to delete unit' });
+      toast({
+        title: "Error",
+        description: "Failed to update unit. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Unit Details</h2>
-          {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="text-purple-600 hover:text-purple-700"
-              data-testid="edit-button"
-            >
-              Edit
-            </button>
-          )}
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField label="Unit Number" error={errors.unit_number} required>
-            <Input
-              id="unit_number"
-              name="unit_number"
-              type="text"
-              defaultValue={unit.unit_number}
-              disabled={!isEditing}
-              error={!!errors.unit_number}
-              data-testid="unit-number-input"
-            />
-          </FormField>
-
-          <FormField label="Floor Plan" error={errors.floor_plan}>
-            <Input
-              id="floor_plan"
-              name="floor_plan"
-              type="text"
-              defaultValue={unit.floor_plan || ''}
-              disabled={!isEditing}
-              error={!!errors.floor_plan}
-              data-testid="floor-plan-input"
-            />
-          </FormField>
-
-          <FormField label="Status" error={errors.status} required>
-            <Select
-              id="status"
-              name="status"
-              defaultValue={unit.status}
-              disabled={!isEditing}
-              options={[
-                { value: 'available', label: 'Available' },
-                { value: 'occupied', label: 'Occupied' },
-                { value: 'maintenance', label: 'Maintenance' }
-              ]}
-              error={!!errors.status}
-              data-testid="status-select"
-            />
-          </FormField>
-
-          {errors.submit && (
-            <div className="text-red-500 text-sm">{errors.submit}</div>
-          )}
-
-          <div className="flex justify-between mt-6">
-            <div>
-              {isEditing && (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black opacity-30" onClick={onClose}></div>
+        
+        <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Unit Details
+            </h2>
+            <div className="flex items-center gap-2">
+              {!isEditing && (
                 <button
-                  type="button"
-                  onClick={() => setIsDeleting(true)}
-                  className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700"
-                  data-testid="delete-button"
+                  onClick={() => setIsEditing(true)}
+                  className="text-sm font-medium text-purple-600 hover:text-purple-700"
                 >
-                  Delete Unit
+                  Edit
                 </button>
               )}
-            </div>
-            <div className="flex space-x-3">
               <button
-                type="button"
-                onClick={isEditing ? () => setIsEditing(false) : onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-md"
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                {isEditing ? 'Cancel' : 'Close'}
+                <X className="h-5 w-5" />
               </button>
-              {isEditing && (
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
-                  data-testid="save-button"
-                >
-                  Save Changes
-                </button>
-              )}
             </div>
           </div>
-        </form>
 
-        {isDeleting && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm w-full">
-              <h3 className="text-lg font-semibold mb-4">Confirm Delete</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Are you sure you want to delete this unit? This action cannot be undone.
-              </p>
-              <div className="flex justify-end space-x-3">
+          {errors.form && (
+            <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-600 dark:bg-red-900/50 dark:text-red-400">
+              {errors.form}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormField label="Unit Number" error={errors.unit_number} required>
+              <Input
+                name="unit_number"
+                type="text"
+                defaultValue={unit.unit_number}
+                disabled={!isEditing}
+                error={!!errors.unit_number}
+              />
+            </FormField>
+
+            <FormField label="Floor Plan" error={errors.floor_plan} required>
+              <Input
+                name="floor_plan"
+                type="text"
+                defaultValue={unit.floor_plan}
+                disabled={!isEditing}
+                error={!!errors.floor_plan}
+              />
+            </FormField>
+
+            <FormField label="Status" error={errors.status} required>
+              <select
+                name="status"
+                defaultValue={unit.status}
+                disabled={!isEditing}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="available">Available</option>
+                <option value="occupied">Occupied</option>
+                <option value="maintenance">Under Maintenance</option>
+              </select>
+            </FormField>
+
+            <FormField label="Rent Amount" error={errors.rent_amount} required>
+              <Input
+                name="rent_amount"
+                type="number"
+                min="0"
+                step="0.01"
+                defaultValue={unit.rent_amount}
+                disabled={!isEditing}
+                error={!!errors.rent_amount}
+              />
+            </FormField>
+
+            <FormField label="Square Feet" error={errors.square_feet} required>
+              <Input
+                name="square_feet"
+                type="number"
+                min="0"
+                defaultValue={unit.square_feet}
+                disabled={!isEditing}
+                error={!!errors.square_feet}
+              />
+            </FormField>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Bedrooms" error={errors.bedrooms} required>
+                <Input
+                  name="bedrooms"
+                  type="number"
+                  min="0"
+                  defaultValue={unit.bedrooms}
+                  disabled={!isEditing}
+                  error={!!errors.bedrooms}
+                />
+              </FormField>
+
+              <FormField label="Bathrooms" error={errors.bathrooms} required>
+                <Input
+                  name="bathrooms"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  defaultValue={unit.bathrooms}
+                  disabled={!isEditing}
+                  error={!!errors.bathrooms}
+                />
+              </FormField>
+            </div>
+
+            {isEditing && (
+              <div className="flex justify-end space-x-3 pt-4">
                 <button
-                  onClick={() => setIsDeleting(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-md"
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
-                  data-testid="confirm-delete-button"
+                  type="submit"
+                  disabled={isLoading}
+                  className="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Delete
+                  {isLoading ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            )}
+          </form>
+        </div>
       </div>
     </div>
   );
-};
-
-export default UnitDetailsModal;
+}

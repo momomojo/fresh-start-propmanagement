@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Search, Filter, Plus, Download, Printer, Building2 } from 'lucide-react';
+import { UnitDetailsModal } from '@/components/properties/UnitDetailsModal';
 import { Toaster } from '@/components/ui/toaster';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ const Properties = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedPropertyForUnit, setSelectedPropertyForUnit] = useState<string | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<PropertyUnit | null>(null);
 
   useEffect(() => {
     dispatch(fetchProperties())
@@ -76,8 +78,24 @@ const Properties = () => {
   };
 
   const handleUnitClick = (unit: PropertyUnit & { tenant?: Tenant }) => {
-    // TODO: Implement unit details modal
-    console.log('Unit clicked:', unit);
+    setSelectedUnit(unit);
+  };
+
+  const handleUnitUpdate = async (updatedUnit: PropertyUnit) => {
+    try {
+      await dispatch(fetchUnits());
+      toast({
+        title: "Success",
+        description: "Unit updated successfully",
+      });
+      setSelectedUnit(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update unit",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditProperty = async (property: Property) => {
@@ -304,6 +322,18 @@ const Properties = () => {
             onSuccess={handleUnitAdded}
           />
         )}
+
+        {selectedUnit && (
+          <UnitDetailsModal
+            unit={selectedUnit}
+            onClose={() => setSelectedUnit(null)}
+            onUpdate={(updatedUnit) => {
+              dispatch(fetchUnits());
+              setSelectedUnit(null);
+            }}
+          />
+        )}
+
         <Toaster />
       </div>
     </div>
