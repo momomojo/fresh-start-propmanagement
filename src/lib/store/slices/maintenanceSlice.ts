@@ -1,10 +1,12 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { maintenanceService } from '../../firebase/services/maintenanceService';
 import type { MaintenanceRequest } from '../../../types';
+import { ActionStatus } from '../types';
 
 interface MaintenanceState {
   requests: MaintenanceRequest[];
   selectedRequest: MaintenanceRequest | null;
-  loading: boolean;
+  status: ActionStatus;
   error: string | null;
   filters: {
     status: string[];
@@ -17,7 +19,7 @@ interface MaintenanceState {
 const initialState: MaintenanceState = {
   requests: [],
   selectedRequest: null,
-  loading: false,
+  status: ActionStatus.IDLE,
   error: null,
   filters: {
     status: [],
@@ -26,6 +28,17 @@ const initialState: MaintenanceState = {
     search: '',
   },
 };
+
+export const fetchMaintenanceRequests = createAsyncThunk(
+  'maintenance/fetchRequests',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await maintenanceService.getRequests();
+    } catch (error) {
+      return rejectWithValue((error as Error).message);
+    }
+  }
+);
 
 const maintenanceSlice = createSlice({
   name: 'maintenance',
@@ -59,6 +72,21 @@ const maintenanceSlice = createSlice({
       state.filters = { ...state.filters, ...action.payload };
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchMaintenanceRequests.pending, (state) => {
+        state.status = ActionStatus.LOADING;
+        state.error = null;
+      })
+      .addCase(fetchMaintenanceRequests.fulfilled, (state, action) => {
+        state.status = ActionStatus.SUCCEEDED;
+        state.requests = action.payload;
+      })
+      .addCase(fetchMaintenanceRequests.rejected, (state, action) => {
+        state.status = ActionStatus.FAILED;
+        state.error = action.payload as string;
+      });
+  }
 });
 
 export const {

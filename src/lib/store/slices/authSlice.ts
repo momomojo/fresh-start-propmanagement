@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { checkConnection } from '@/lib/utils/network';
 import type { User } from '../../../types';
 
 interface AuthState {
@@ -6,6 +7,7 @@ interface AuthState {
   token: string | null;
   loading: boolean;
   error: string | null;
+  isOffline: boolean;
 }
 
 const initialState: AuthState = {
@@ -13,6 +15,7 @@ const initialState: AuthState = {
   token: localStorage.getItem('token'),
   loading: false,
   error: null,
+  isOffline: false,
 };
 
 const authSlice = createSlice({
@@ -39,10 +42,12 @@ const authSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
+    setOfflineStatus: (state, action: PayloadAction<boolean>) => {
+      state.isOffline = action.payload;
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
-      state.loading = false;
       state.loading = false;
       state.error = null;
       localStorage.removeItem('token');

@@ -1,51 +1,71 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Avatar } from '@/components/ui/avatar';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { User } from '@/types';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-const UserProfile: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+interface UserProfileProps {
+  user: User;
+  onSave: (user: Partial<User>) => void;
+}
+
+export const UserProfile = ({ user, onSave }: UserProfileProps) => {
+  const [formData, setFormData] = useState({
+    name: user.name,
+    email: user.email,
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile</CardTitle>
+        <CardTitle>Profile Information</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
-          <div className="flex items-center gap-x-6">
-            <Avatar className="h-16 w-16" />
-            <div>
-              <Button variant="outline">Change Avatar</Button>
-              <p className="text-sm text-muted-foreground mt-2">
-                JPG, GIF or PNG. Max size of 800K
-              </p>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
+            />
           </div>
-
-          <div className="grid w-full gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue={user?.name || ''} />
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={user?.email || ''} disabled />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, email: e.target.value }))
+              }
+            />
           </div>
-
-          <div className="flex justify-end">
-            <Button>Save Changes</Button>
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <p className="text-sm text-muted-foreground capitalize">
+              {user.role.replace('_', ' ')}
+            </p>
           </div>
-        </div>
+          <div className="space-y-2">
+            <Label>Account Created</Label>
+            <p className="text-sm text-muted-foreground">
+              {new Date(user.created_at).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="pt-4">
+            <Button type="submit">Save Changes</Button>
+          </div>
+        </form>
       </CardContent>
     </Card>
   );
 };
-
-export default UserProfile;

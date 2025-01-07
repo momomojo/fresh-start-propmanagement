@@ -30,11 +30,19 @@ const initialState: PropertyState = {
 // Async thunks
 export const fetchProperties = createAsyncThunk(
   'properties/fetchProperties',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
+      const state = getState() as RootState;
+      const { user } = state.auth;
+      
+      if (!user) {
+        throw new Error('User must be authenticated');
+      }
+
       return await propertyService.getProperties();
     } catch (error) {
-      return rejectWithValue((error as Error).message);
+      const message = error instanceof Error ? error.message : 'Failed to fetch properties';
+      return rejectWithValue(message);
     }
   }
 );

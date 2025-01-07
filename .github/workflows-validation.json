@@ -1,0 +1,54 @@
+{
+    "$schema": "https://json.schemastore.org/github-workflow.json",
+    "required": [
+        "name",
+        "on",
+        "jobs"
+    ],
+    "properties": {
+        "env": {
+            "required": [
+                "NODE_VERSION",
+                "RELEASE_VERSION"
+            ]
+        },
+        "jobs": {
+            "required": [
+                "build-and-test",
+                "deploy"
+            ],
+            "properties": {
+                "build-and-test": {
+                    "required": [
+                        "runs-on",
+                        "environment",
+                        "steps"
+                    ]
+                },
+                "deploy": {
+                    "required": [
+                        "needs",
+                        "runs-on",
+                        "environment",
+                        "steps"
+                    ]
+                }
+            }
+        }
+    },
+    "secrets": {
+        "required": [
+            "VITE_FIREBASE_API_KEY",
+            "VITE_FIREBASE_AUTH_DOMAIN",
+            "VITE_FIREBASE_PROJECT_ID",
+            "VITE_FIREBASE_STORAGE_BUCKET",
+            "VITE_FIREBASE_MESSAGING_SENDER_ID",
+            "VITE_FIREBASE_APP_ID",
+            "VITE_FIREBASE_SERVICE_ACCOUNT",
+            "VITE_SENTRY_DSN",
+            "VITE_SENTRY_AUTH_TOKEN",
+            "VITE_SENTRY_ORG",
+            "VITE_SENTRY_PROJECT"
+        ]
+    }
+}

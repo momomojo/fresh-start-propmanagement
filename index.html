@@ -1,13 +1,23 @@
-<!doctype html>
-<html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Sentry Loader Script -->
+  <script src="https://js.sentry-cdn.com/6e91a55b4f01a348d60cf4fba5f68a97.min.js" crossorigin="anonymous"></script>
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy"
+    content="report-uri https://o4508478973476864.ingest.us.sentry.io/api/4508478995234816/security/?sentry_key=6e91a55b4f01a348d60cf4fba5f68a97&sentry_environment=production&sentry_release=%VITE_RELEASE_VERSION%" />
+  <meta http-equiv="Expect-CT"
+    content="report-uri=https://o4508478973476864.ingest.us.sentry.io/api/4508478995234816/security/?sentry_key=6e91a55b4f01a348d60cf4fba5f68a97" />
+  <title>Property Management</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

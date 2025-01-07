@@ -1,16 +1,32 @@
 import { propertyService as firebaseService } from '../firebase/services/propertyService';
+import { auth } from '../firebase/config';
 import type { Property } from '../../types';
 
 class PropertyService {
   async getProperties(): Promise<Property[]> {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
     return firebaseService.getProperties();
   }
 
   async getProperty(id: string): Promise<Property | null> {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
     return firebaseService.getProperty(id);
   }
 
   async getPropertyByUnitId(unitId: string): Promise<Property | null> {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
     return firebaseService.getPropertyByUnitId(unitId);
   }
 
